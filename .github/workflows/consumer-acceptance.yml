@@ -1,0 +1,32 @@
+name: Phase 6 SDK consumer validation
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  consumer-builds:
+    name: Packed SDK → TypeScript, Vanilla, React, Vue
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate real external app builds
+        run: node tools/validate-consumers.mjs
+      - name: Save consumer-build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wonder-phase6-consumer-results
+          path: results/phase6-consumers.json
+          if-no-files-found: warn
+

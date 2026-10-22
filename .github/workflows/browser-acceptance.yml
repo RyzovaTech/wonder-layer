@@ -1,0 +1,111 @@
+name: Phase 6 browser acceptance
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chromium-pwa:
+    name: Chromium PWA offline & recovery
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Playwright browser and Linux dependencies
+        run: |
+          python -m pip install "playwright>=1.56,<2"
+          python -m playwright install --with-deps chromium
+      - name: Real browser acceptance (no mocks)
+        run: |
+          python tests/browser_acceptance.py --browser chromium --profile desktop --output results/chromium-desktop-acceptance.json
+          python tests/browser_acceptance.py --browser chromium --profile mobile --output results/chromium-mobile-emulated-acceptance.json
+      - name: Upload acceptance evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wonder-phase6-chromium-results
+          path: results/chromium-*-acceptance.json
+          if-no-files-found: warn
+
+  cross-browser-lab:
+    name: ${{ matrix.browser }} desktop PWA acceptance (experimental)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    continue-on-error: false
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Playwright browser and dependencies
+        run: |
+          python -m pip install "playwright>=1.56,<2"
+          python -m playwright install --with-deps ${{ matrix.browser }}
+      - name: Real browser lab (document unsupported features)
+        run: |
+          python tests/browser_acceptance.py --browser ${{ matrix.browser }} --profile desktop --output results/${{ matrix.browser }}-desktop-acceptance.json
+          if [ "${{ matrix.browser }}" = "webkit" ]; then
+            python tests/browser_acceptance.py --browser webkit --profile mobile --output results/webkit-mobile-emulated-acceptance.json
+          fi
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wonder-phase6-${{ matrix.browser }}-results
+          path: results/${{ matrix.browser }}-*-acceptance.json
+          if-no-files-found: warn
+
+  windows-macos-lab:
+    name: ${{ matrix.name }} native OS browser engine
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows Edge
+            os: windows-latest
+            browser: chromium
+            channel: msedge
+          - name: macOS WebKit
+            os: macos-latest
+            browser: webkit
+            channel: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Playwright Python dependencies
+        run: python -m pip install "playwright>=1.56,<2"
+      - name: Install Playwright browser where applicable
+        run: python -m playwright install ${{ matrix.browser }}
+      - name: Run actual OS browser acceptance
+        shell: bash
+        run: |
+          if [ -n "${{ matrix.channel }}" ]; then
+            python tests/browser_acceptance.py --browser ${{ matrix.browser }} --channel ${{ matrix.channel }} --output results/cross-os-${{ matrix.browser }}-${{ matrix.channel }}.json
+          else
+            python tests/browser_acceptance.py --browser ${{ matrix.browser }} --output results/cross-os-${{ matrix.browser }}.json
+          fi
+      - name: Upload OS browser acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wonder-cross-os-${{ matrix.browser }}-${{ matrix.os }}
+          path: results/cross-os-*.json
+          if-no-files-found: warn

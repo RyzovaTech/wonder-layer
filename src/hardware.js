@@ -14,7 +14,11 @@ function capabilityName(kind){
 }
 function classify(error,kind){
   if(error instanceof WonderHardwareError)return error;
-  const code=error?.name==="NotAllowedError"||error?.name==="PermissionDeniedError"?"PERMISSION_DENIED":
+  // GeolocationPositionError uses numeric codes rather than DOMException.name.
+  const geoDenied=kind==="geolocation"&&error?.code===1;
+  const geoTimeout=kind==="geolocation"&&error?.code===3;
+  const code=geoDenied||error?.name==="NotAllowedError"||error?.name==="PermissionDeniedError"?"PERMISSION_DENIED":
+    geoTimeout?"TIMEOUT":
     error?.name==="AbortError"?"CANCELLED":error?.name==="NotFoundError"?"NOT_FOUND":"DEVICE_ERROR";
   return new WonderHardwareError(code,kind,String(error?.message??error),error);
 }

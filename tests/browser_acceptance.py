@@ -32,32 +32,79 @@ def local_server():
         srv.server_close()
         thread.join(timeout=3)
 
-def run(browser_name="chromium", executable_path=None):
+def run(browser_name="chromium", executable_path=None, profile="desktop", channel=None):
     from playwright.sync_api import sync_playwright
-    report = {"schema": "wonder-phase4-browser-v1", "date": datetime.now(timezone.utc).isoformat(),
-              "browser": browser_name, "checks": [], "status": "not-run"}
+    report = {"schema": "wonder-phase6-browser-v3", "date": datetime.now(timezone.utc).isoformat(),
+              "browser": browser_name, "profile": profile, "channel": channel,
+              "checks": [], "status": "not-run"}
     ctx = None
     try:
-        with local_server() as url, tempfile.TemporaryDirectory() as profile, sync_playwright() as p:
+        with local_server() as url, tempfile.TemporaryDirectory() as user_profile, sync_playwright() as p:
+            profile_mode=profile
+            if profile_mode not in ("desktop","mobile"):
+                raise ValueError("Unsupported browser profile")
+            if browser_name=="firefox" and profile_mode=="mobile":
+                raise ValueError("Playwright Firefox does not support mobile context emulation")
             browser = getattr(p, browser_name)
             launch_args={"headless":True,"service_workers":"allow","accept_downloads":True}
             if executable_path: launch_args["executable_path"]=executable_path
-            ctx = browser.launch_persistent_context(profile, **launch_args)
+            if channel:
+                if browser_name!="chromium": raise ValueError("Browser channel is only supported for Chromium")
+                launch_args["channel"]=channel
+            if profile_mode=="mobile":
+                launch_args.update(is_mobile=True,has_touch=True,
+                    viewport={"width":390,"height":844},device_scale_factor=3)
+            ctx = browser.launch_persistent_context(user_profile, **launch_args)
             page = ctx.new_page()
             def check(name, fn):
-                detail = fn()
-                report["checks"].append({"name": name, "status": "pass", "detail": detail})
+                try:
+                    detail=fn()
+                except Exception as exc:
+                    report["checks"].append({"name":name,"status":"fail",
+                                             "error":str(exc)[:1500]})
+                    raise
+                check_status="unsupported" if isinstance(detail, dict) and detail.get("state")=="unsupported" else "pass"
+                report["checks"].append({"name": name, "status": check_status, "detail": detail})
             def navigation():
                 response = page.goto(url, wait_until="load", timeout=25000)
                 assert response and response.ok, "Page failed to load"
                 return {"http": response.status, "title": page.title()}
             check("online_navigation", navigation)
             report["userAgent"] = page.evaluate("navigator.userAgent")
+            report["runtime"] = page.evaluate("""() => ({
+              viewport:{width:innerWidth,height:innerHeight},
+              touchPoints:navigator.maxTouchPoints,
+              secureContext:isSecureContext,
+              standalone:matchMedia("(display-mode: standalone)").matches
+            })""")
+            if profile_mode=="mobile":
+                # Linux WebKit may report 0 maxTouchPoints even with a touch-enabled
+                # Playwright context. Verify configured viewport independently,
+                # and record browser-reported touch as evidence rather than invent it.
+                browser_viewport=page.viewport_size
+                report["runtime"]["playwrightViewport"]=browser_viewport
+                report["runtime"]["reportedTouchSupport"]=report["runtime"]["touchPoints"]>0
+                if browser_viewport is None or browser_viewport["width"]>500:
+                    raise AssertionError("Mobile viewport configuration was not applied")
             def controlled():
                 page.reload(wait_until="load")
                 page.wait_for_function("() => !!navigator.serviceWorker?.controller", timeout=15000)
                 return page.evaluate("navigator.serviceWorker.controller.scriptURL")
             check("service_worker_control", controlled)
+            def ui_keyboard_and_responsive_layout():
+                title=page.locator("h1")
+                assert title.is_visible(), "Hero title missing"
+                assert page.locator("html").get_attribute("lang")=="en", "Document language missing"
+                assert page.locator("textarea#note").get_attribute("id")=="note"
+                dimensions=page.evaluate("""() => ({
+                  screen: document.documentElement.clientWidth,
+                  scroll: document.documentElement.scrollWidth,
+                  controls: Array.from(document.querySelectorAll("button")).length
+                })""")
+                assert dimensions["scroll"]<=dimensions["screen"]+3, "Horizontal overflow in application"
+                assert dimensions["controls"]>=8
+                return dimensions
+            check("basic_accessibility_and_layout",ui_keyboard_and_responsive_layout)
             def save():
                 page.locator("#note").fill("wonder-phase2-offline-proof")
                 page.locator("#save").click()
@@ -107,6 +154,118 @@ def run(browser_name="chromium", executable_path=None):
                 assert abs(data["firstValues"][0]-2)<0.001
                 return {"backend": data["backend"], "ms": data["elapsedMs"], "fallbacks": data["failedAttempts"]}
             check("adaptive_compute", compute)
+
+            def explicit_backend_parity():
+                return page.evaluate("""async () => {
+                    const {createAdaptiveEngine} = await import("/src/wonder.js");
+                    const input=Float32Array.from({length:4096},(_,i)=>(i%101)/4);
+                    const engine=createAdaptiveEngine();
+                    const result={};
+                    for(const backend of ["js","wasm","worker"]){
+                      if(backend==="worker" && typeof Worker==="undefined"){
+                        result.worker={state:"unsupported"};continue;
+                      }
+                      const started=performance.now();
+                      const output=await engine.run(input,{prefer:backend});
+                      if(output.backend!==backend)throw Error("Unexpected backend: "+output.backend);
+                      for(let i=0;i<input.length;i++){
+                        const expected=Math.fround(Math.fround(input[i]*1.5)+2);
+                        if(Math.abs(output.data[i]-expected)>0.001)
+                          throw Error(backend+" mismatch at "+i);
+                      }
+                      result[backend]={state:"verified",elapsedMs:Number((performance.now()-started).toFixed(3))};
+                    }
+                    const gpuAvailable=typeof navigator.gpu?.requestAdapter==="function";
+                    let adapter=null;
+                    if(gpuAvailable)adapter=await navigator.gpu.requestAdapter();
+                    if(!adapter){result.gpu={state:"unsupported",reason:"No WebGPU adapter"};}
+                    else{
+                      const large=Float32Array.from({length:65536},(_,i)=>(i%101)/4);
+                      const gpu=await engine.run(large,{prefer:"gpu"});
+                      if(gpu.backend!=="gpu")throw Error("GPU dispatch did not execute");
+                      result.gpu={state:"verified",elements:large.length,elapsedMs:gpu.durationMs};
+                    }
+                    return result;
+                }""")
+            check("explicit_backend_numerical_parity",explicit_backend_parity)
+            def corrupted_backup_rejected():
+                return page.evaluate("""async () => {
+                    const {createWonderLayer} = await import("/src/wonder.js");
+                    const wonder=await createWonderLayer({dbName:"wonder-phase6-recovery-proof"});
+                    try{
+                      await wonder.store.save("keep","safe");
+                      const original=await wonder.backup();
+                      const modified=original.replace("safe","tampered");
+                      let rejected=false;
+                      try{await wonder.recovery.restore(modified);}catch(e){
+                        rejected=/checksum mismatch/.test(String(e.message));
+                      }
+                      const rows=await wonder.store.listRecords();
+                      if(!rejected||rows.length!==1||rows[0].content!=="safe")
+                        throw Error("Corrupted backup changed storage");
+                      return {integrity:"verified",recordPreserved:true};
+                    }finally{wonder.close();}
+                }""")
+            check("corrupted_backup_preserves_data",corrupted_backup_rejected)
+            def pwa_manifest_assets():
+                return page.evaluate("""async () => {
+                  const link=document.querySelector('link[rel="manifest"]');
+                  if(!link)throw Error("Missing manifest");
+                  const response=await fetch(link.href);
+                  if(!response.ok)throw Error("Manifest unavailable");
+                  const manifest=await response.json();
+                  if(manifest.display!=="standalone" || !manifest.icons?.length)
+                    throw Error("Unexpected manifest configuration");
+                  const checked=[];
+                  for(const icon of manifest.icons){
+                    const r=await fetch(new URL(icon.src,response.url));
+                    if(!r.ok)throw Error("Missing icon: "+icon.src);
+                    const bytes=await r.arrayBuffer();
+                    if(bytes.byteLength<100)throw Error("Invalid tiny icon: "+icon.src);
+                    checked.push({size:icon.sizes,bytes:bytes.byteLength});
+                  }
+                  return {manifestValid:true,icons:checked};
+                }""")
+            check("manifest_and_install_icon_assets",pwa_manifest_assets)
+            def geolocation_permission_flow():
+                if browser_name!="chromium":
+                    return {"state":"unsupported","reason":"Only Chromium geolocation override validated in this CI"}
+                if not page.evaluate("!!navigator.geolocation"):
+                    return {"state":"unsupported","reason":"Geolocation API not exposed"}
+                origin=url.split("/examples/")[0]
+                ctx.set_geolocation({"latitude":0,"longitude":0,"accuracy":11})
+                ctx.grant_permissions(["geolocation"],origin=origin)
+                page.locator("#geo-test").click()
+                page.get_by_text("Location obtained; reported accuracy: 11 meters.",exact=False).wait_for(timeout=15000)
+                ctx.grant_permissions([],origin=origin)
+                page.reload(wait_until="load")
+                permission_state=page.evaluate("""async () => {
+                    try {return (await navigator.permissions.query({name:"geolocation"})).state}
+                    catch {return "unqueryable"}
+                }""")
+                if permission_state!="denied":
+                    # Browser-managed permission profiles vary (notably managed Edge).
+                    # Treat an unverified deny override as UNSUPPORTED, never as PASS.
+                    return {"state":"unsupported",
+                            "reason":"Browser did not expose deterministic denied permission after override",
+                            "permissionState":permission_state,
+                            "permissionGranted":True,"permissionDenied":False}
+                page.locator("#geo-test").click()
+                page.wait_for_function("""() => {
+                    const status=document.querySelector("#hardware-status")?.textContent??"";
+                    return status.startsWith("PERMISSION_DENIED:") ||
+                           status.startsWith("TIMEOUT:") ||
+                           status.startsWith("DEVICE_ERROR:") ||
+                           status.startsWith("Location obtained;");
+                }""",timeout=15000)
+                outcome=page.locator("#hardware-status").inner_text()
+                assert outcome.startswith("PERMISSION_DENIED:"), (
+                    "Denied permission was not classified as PERMISSION_DENIED: "+outcome)
+                return {"state":"verified","permissionGranted":True,"permissionDenied":True,
+                        "coordinatesStored":False}
+            check("geolocation_permission_granted_and_denied",geolocation_permission_flow)
+
+
             def opfs():
                 return page.evaluate("""async () => {
                     if (!navigator.storage?.getDirectory) return {state:"unsupported"};
@@ -130,7 +289,11 @@ def run(browser_name="chromium", executable_path=None):
                 ctx.close()
                 restart_args={"headless":True,"offline":True,"service_workers":"allow"}
                 if executable_path: restart_args["executable_path"]=executable_path
-                ctx=browser.launch_persistent_context(profile, **restart_args)
+                if channel: restart_args["channel"]=channel
+                if profile_mode=="mobile":
+                    restart_args.update(is_mobile=True,has_touch=True,
+                        viewport={"width":390,"height":844},device_scale_factor=3)
+                ctx=browser.launch_persistent_context(user_profile, **restart_args)
                 page=ctx.new_page()
                 page.goto(url,wait_until="load",timeout=20000)
                 page.locator("#load").click()
@@ -152,10 +315,13 @@ def run(browser_name="chromium", executable_path=None):
 if __name__=="__main__":
     parser=argparse.ArgumentParser()
     parser.add_argument("--browser", choices=("chromium","firefox","webkit"), default="chromium")
-    parser.add_argument("--output", default="results/phase4-browser-acceptance.json")
+    parser.add_argument("--profile",choices=("desktop","mobile"),default="desktop",
+                        help="Mobile emulation is available for Chromium and WebKit only")
+    parser.add_argument("--output", default="results/phase6-browser-acceptance.json")
     parser.add_argument("--executable-path", default=None, help="Optional existing browser binary; OS policies still apply")
+    parser.add_argument("--channel",default=None,help="Optional Chromium browser channel, e.g. msedge")
     args=parser.parse_args()
-    report=run(args.browser,args.executable_path)
+    report=run(args.browser,args.executable_path,args.profile,args.channel)
     output=Path(args.output);output.parent.mkdir(parents=True,exist_ok=True)
     output.write_text(json.dumps(report,indent=2)+"\n",encoding="utf8")
     print(json.dumps({"status":report["status"],"checks":report["checks"],"error":report.get("error")},indent=2))

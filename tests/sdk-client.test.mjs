@@ -64,3 +64,29 @@ test("misbehaving subscribers do not interrupt lifecycle",async()=>{
   client.dispose();
 });
 
+
+test("StrictMode-style stop/restart creates a fresh client without retaining stale promise",async()=>{
+  let firstResolve,secondResolve,opened=0,closed=0;
+  const client=createWonderClient({}, {factory:async()=>{
+    opened++;
+    return new Promise(resolve=>{
+      if(opened===1)firstResolve=resolve;
+      else secondResolve=resolve;
+    });
+  }});
+  const first=client.start();
+  await tick();
+  client.stop();
+  const second=client.start();
+  await tick();
+  assert.equal(opened,2);
+  secondResolve({close(){closed++;}});
+  const layer=await second;
+  assert.equal(client.status,"ready");
+  firstResolve({close(){closed++;}});
+  await assert.rejects(first,/superseded/);
+  assert.equal(client.layer,layer);
+  assert.equal(closed,1);
+  client.dispose();
+  assert.equal(closed,2);
+});
