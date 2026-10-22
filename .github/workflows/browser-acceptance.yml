@@ -1,12 +1,15 @@
 name: Phase 6 browser acceptance
 on:
   push:
-    branches: [main, 'engineering/**']
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   chromium-pwa:
@@ -24,20 +27,21 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Real browser acceptance (no mocks)
         run: |
-          python tests/browser_acceptance.py --browser chromium --output results/chromium-acceptance.json
+          python tests/browser_acceptance.py --browser chromium --profile desktop --output results/chromium-desktop-acceptance.json
+          python tests/browser_acceptance.py --browser chromium --profile mobile --output results/chromium-mobile-emulated-acceptance.json
       - name: Upload acceptance evidence even on failure
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: wonder-phase6-chromium-results
-          path: results/chromium-acceptance.json
+          path: results/chromium-*-acceptance.json
           if-no-files-found: warn
 
   cross-browser-lab:
     name: ${{ matrix.browser }} desktop PWA acceptance (experimental)
     runs-on: ubuntu-latest
     timeout-minutes: 35
-    continue-on-error: true
+    continue-on-error: false
     strategy:
       fail-fast: false
       matrix:
@@ -53,11 +57,14 @@ jobs:
           python -m playwright install --with-deps ${{ matrix.browser }}
       - name: Real browser lab (document unsupported features)
         run: |
-          python tests/browser_acceptance.py --browser ${{ matrix.browser }} --output results/${{ matrix.browser }}-acceptance.json
+          python tests/browser_acceptance.py --browser ${{ matrix.browser }} --profile desktop --output results/${{ matrix.browser }}-desktop-acceptance.json
+          if [ "${{ matrix.browser }}" = "webkit" ]; then
+            python tests/browser_acceptance.py --browser webkit --profile mobile --output results/webkit-mobile-emulated-acceptance.json
+          fi
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: wonder-phase6-${{ matrix.browser }}-results
-          path: results/${{ matrix.browser }}-acceptance.json
+          path: results/${{ matrix.browser }}-*-acceptance.json
           if-no-files-found: warn
