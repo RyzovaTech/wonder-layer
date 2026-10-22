@@ -1,5 +1,5 @@
 "use strict";
-const CACHE="ryzova-wonder-integration-v3";
+const CACHE="ryzova-wonder-integration-v4";
 const scope=self.registration.scope;
 const asset=(path)=>new URL(path,scope).href;
 const SHELL=[
@@ -9,7 +9,8 @@ const SHELL=[
   "../../src/compute.js","../../src/compute-worker.js","../../src/compute.wasm",
   "../../src/lifecycle.js","../../src/backup.js","../../src/files.js",
   "../../src/scheduler.js","../../src/hardware.js",
-  "../../src/recovery.js","../../src/reconnect.js","../../src/pwa.js"
+  "../../src/recovery.js","../../src/reconnect.js","../../src/pwa.js",
+  "../../src/sync-security.js"
 ].map(asset);
 self.addEventListener("install",event=>{
   event.waitUntil((async()=>{
