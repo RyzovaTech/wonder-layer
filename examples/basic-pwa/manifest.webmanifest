@@ -1,0 +1,23 @@
+{
+  "name": "Ryzova Wonder Layer — Pure PWA Example",
+  "short_name": "Wonder Layer",
+  "description": "Pure PWA SDK integration with offline storage and adaptive compute.",
+  "id": "/examples/basic-pwa/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#08152c",
+  "theme_color": "#0b1730",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
