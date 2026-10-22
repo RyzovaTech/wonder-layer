@@ -207,6 +207,41 @@ def run(browser_name="chromium", executable_path=None, profile="desktop", channe
                     }finally{wonder.close();}
                 }""")
             check("corrupted_backup_preserves_data",corrupted_backup_rejected)
+            def sync_data_exfiltration_guard():
+                return page.evaluate("""async () => {
+                  const {createWonderLayer}=await import("/src/wonder.js");
+                  const layer=await createWonderLayer({dbName:"wonder-phase7-exfil-proof"});
+                  const originalFetch=window.fetch;
+                  let calls=0;
+                  try{
+                    await layer.store.save("local-secret","never uploaded");
+                    window.fetch=async()=>{calls++;throw Error("Unexpected outgoing fetch");};
+                    let blocked=false;
+                    try{await layer.store.sync("https://untrusted.example.invalid/collect");}
+                    catch(error){blocked=/Cross-origin sync is forbidden/.test(String(error.message));}
+                    const pending=await layer.store.pending();
+                    const saved=await layer.store.listRecords();
+                    if(!blocked||calls!==0||pending.length!==1||
+                       saved[0].content!=="never uploaded")throw Error("Local sync exfil guard failed");
+                    return {blocked:true,fetchCalls:0,recordRetained:true};
+                  }finally{window.fetch=originalFetch;layer.close();}
+                }""")
+            check("cross_origin_sync_has_no_network_or_data_loss",sync_data_exfiltration_guard)
+            def device_lab_no_automatic_permissions():
+                lab=ctx.new_page()
+                try:
+                    response=lab.goto(url.split("/examples/")[0]+"/examples/device-lab/",
+                                      wait_until="load",timeout=25000)
+                    assert response and response.ok, "Physical device lab page unavailable"
+                    lab.locator("#tests button[data-test]").first.wait_for(timeout=15000)
+                    assert lab.locator("#tests button[data-test]").count()>=8
+                    lab.wait_for_function("""() => document.querySelector("#context")?.textContent.includes("Secure browser context")""",
+                                          timeout=10000)
+                    assert "Nothing requested" in lab.locator("#status").inner_text()
+                    return {"deviceLabLoaded":True,"permissionRequestedWithoutClick":False}
+                finally:
+                    lab.close()
+            check("device_lab_loads_without_permission_prompts",device_lab_no_automatic_permissions)
             def pwa_manifest_assets():
                 return page.evaluate("""async () => {
                   const link=document.querySelector('link[rel="manifest"]');
