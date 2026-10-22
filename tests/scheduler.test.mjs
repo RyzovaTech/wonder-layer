@@ -80,3 +80,33 @@ test("metrics reset removes cooldown and statistics",async()=>{
   assert.deepEqual(engine.health(),{});
 });
 
+
+test("opt-in calibration measures engines and selects fastest verified backend",async()=>{
+  let clock=1000;
+  const envv=env();
+  const costs={gpu:9,wasm:2,worker:4,js:6};
+  const backends=Object.fromEntries(Object.entries(costs).map(([id,cost])=>
+    [id,input=>{clock+=cost;return new Float32Array(input.length).fill(5);}]
+  ));
+  const engine=createAdaptiveEngine({env:envv,clock:()=>clock,backends});
+  const input=new Float32Array(65536).fill(2);
+  assert.equal(engine.plan(65536)[0],"gpu");
+  const calibration=await engine.calibrate(input,{samples:2});
+  assert.equal(calibration.results.length,4);
+  assert.equal(calibration.failures.length,0);
+  assert.equal(engine.plan(65536)[0],"wasm");
+  const result=await engine.run(input);
+  assert.equal(result.backend,"wasm");
+  assert.equal(engine.plan(65536,{policy:"responsive"})[0],"worker");
+});
+test("calibration does not silently grant or request hardware permissions",async()=>{
+  let requestPermissions=0;
+  const engine=createAdaptiveEngine({
+    env:{isSecureContext:true,navigator:{},Worker:undefined},
+    backends:{js:input=>new Float32Array(input.length).fill(5)}
+  });
+  const report=await engine.calibrate(new Float32Array([2]),{samples:1});
+  assert.equal(report.results.length,1);
+  assert.equal(requestPermissions,0);
+  await assert.rejects(engine.calibrate(new Float32Array([2]),{samples:200}),/samples/);
+});

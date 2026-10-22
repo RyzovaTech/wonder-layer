@@ -73,7 +73,51 @@ export function createAdaptiveEngine({
     // A backend repeatedly failing is skipped until its cooldown expires.
     const current=clock();
     const viable=ordered.filter(id=>id==="js"||(cooled.get(id)??0)<=current);
+    if(policy==="throughput" && viable.length>=2 && viable.every(id=>(metrics.get(id+":"+bucket(length))?.successes??0)>0))
+      viable.sort((a,b)=>(metrics.get(a+":"+bucket(length)).emaMs??Infinity)-
+                        (metrics.get(b+":"+bucket(length)).emaMs??Infinity));
     return viable.length?viable:["js"];
+  }
+  async function calibrate(input,{samples=2,...options}={}){
+    validateOptions(input,options,maxElements);
+    if(!Number.isSafeInteger(samples)||samples<1||samples>5)
+      throw new RangeError("Calibration samples must be between 1 and 5");
+    const choices=plan(input.length,{...options,policy:"throughput"});
+    const report={size:input.length,samples,results:[],failures:[]};
+    for(const backend of choices){
+      if(typeof workers[backend]!=="function")continue;
+      const durations=[];
+      for(let attempt=0;attempt<samples;attempt++){
+        aborted(options.signal);
+        const since=clock();
+        const key=backend+":"+bucket(input.length);
+        const prev=metrics.get(key)??{attempts:0,successes:0,failures:0,lastMs:null,emaMs:null};
+        try{
+          const output=await workers[backend](input,{
+            gain:options.gain??1.5,bias:options.bias??2,signal:options.signal
+          });
+          aborted(options.signal);
+          validateOutput(input,output,{gain:options.gain??1.5,bias:options.bias??2});
+          const ms=Math.max(0,clock()-since);
+          metrics.set(key,{...prev,attempts:prev.attempts+1,successes:prev.successes+1,
+            lastMs:ms,emaMs:prev.emaMs==null?ms:prev.emaMs*0.75+ms*0.25});
+          cooled.delete(backend);durations.push(ms);
+        }catch(error){
+          if(error?.name==="AbortError")throw error;
+          report.failures.push({backend,error:failureText(error)});
+          metrics.set(key,{...prev,attempts:prev.attempts+1,failures:prev.failures+1,
+            lastMs:Math.max(0,clock()-since)});
+          if(backend!=="js")cooled.set(backend,clock()+failureCooldownMs);
+          break;
+        }
+      }
+      if(durations.length){
+        durations.sort((a,b)=>a-b);
+        report.results.push({backend,successfulSamples:durations.length,
+          medianMs:durations[Math.floor(durations.length/2)]});
+      }
+    }
+    return report;
   }
   async function run(input,options={}){
     validateOptions(input,options,maxElements);
@@ -109,7 +153,7 @@ export function createAdaptiveEngine({
   }
   return Object.freeze({
     runtime:"pure-pwa",
-    inspect,plan,run,
+    inspect,plan,run,calibrate,
     stats:()=>Object.fromEntries([...metrics].map(([name,values])=>[name,{...values}])),
     health:()=>Object.fromEntries([...cooled].map(([name,until])=>[name,{state:clock()<until?"cooldown":"ready",cooldownUntil:until}])),
     reset:()=>{metrics.clear();cooled.clear();inspected=null;}
