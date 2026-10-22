@@ -38,7 +38,7 @@ test("service-worker asset list maps to real local files",()=>{
 });
 test("example imports SDK rather than duplicating native wrapper",()=>{
   const app=read("app.js");
-  assert.match(app,/import\s*\{createWonderLayer\}\s*from\s*"\.\.\/\.\.\/src\/wonder\.js"/);
+  assert.ok(app.includes("createWonderLayer") && app.includes('from "../../src/wonder.js"'));
   assert.match(app,/layer\.store\.save/);
   assert.match(app,/layer\.compute/);
   assert.match(app,/layer\.backup/);
@@ -67,5 +67,22 @@ test("Phase 3 SDK is imported by host PWA and offline cached",async()=>{
   assert.match(app,/layer\.scheduler\.calibrate/);
   assert.ok(sw.includes("../../src/scheduler.js"));
   assert.ok(sw.includes("../../src/hardware.js"));
-  assert.ok(sw.includes("ryzova-wonder-integration-v2"));
+  assert.ok(sw.includes("ryzova-wonder-integration-v3"));
+});
+
+test("Phase 4 PWA lifecycle, recovery, and cache dependencies are wired",async()=>{
+  const sdk=await import("../src/wonder.js");
+  assert.equal(typeof sdk.createReconnectController,"function");
+  assert.equal(typeof sdk.createRecoveryManager,"function");
+  assert.equal(typeof sdk.createPWALifecycle,"function");
+  const app=read("app.js"),html=read("index.html"),sw=read("sw.js");
+  for(const target of ["storage-check","storage-persist","check-update","apply-update","pwa-status"])
+    assert.ok(html.includes('id="'+target+'"'));
+  assert.match(app,/pwa\.register/);
+  assert.match(app,/recovery\.requestPersistence/);
+  assert.ok(app.includes('Save your current note locally before activating the update.'));
+  assert.ok(!sw.includes("await self.skipWaiting()"));
+  assert.ok(sw.includes("WONDER_ACTIVATE_UPDATE"));
+  for(const path of ["../../src/recovery.js","../../src/reconnect.js","../../src/pwa.js"])
+    assert.ok(sw.includes(path));
 });

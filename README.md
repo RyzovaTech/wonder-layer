@@ -24,6 +24,17 @@ Ryzova Wonder Layer is a framework-independent experimental SDK for giving exist
 
 See [Phase 3 architecture and tests](docs/PHASE3_CAPABILITY_ENGINE.md).
 
+## Phase 4 — Offline reliability
+
+- Atomic multi-record IndexedDB import (existing records preserved unless overwrite is explicit).
+- SHA-256 integrity checks for version 2 backup/recovery snapshots; version 1 backups remain importable with `legacy-unverified` status.
+- Opt-in persistent-storage requests and storage quota warnings; no eviction guarantee.
+- Bounded exponential reconnect retry, foreground-only and disabled by default.
+- Service Worker lifecycle with manual update activation; never silently replace a running app during an active session.
+- The sample app includes storage usage, persistence requests and update controls. **It never automatically sends local notes to an arbitrary server.**
+
+See [Phase 4 engineering notes](docs/PHASE4_OFFLINE.md).
+
 ## Run the existing-PWA integration example
 
 Requirements: Python 3 and an unrestricted browser.

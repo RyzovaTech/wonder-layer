@@ -29,7 +29,9 @@
       <div class="actions">
         <button type="button" id="save">Save locally</button>
         <button type="button" id="load">Reopen</button>
-        <button type="button" id="export">Export backup</button>
+        <button type="button" id="export">Export verified backup</button>
+        <button type="button" id="storage-check">Storage health</button>
+        <button type="button" id="storage-persist">Request durability</button>
         <label class="import">Import backup <input type="file" id="import" accept=".json,application/json"></label>
       </div>
       <output id="storage-status" role="status" aria-live="polite">Initializing offline database…</output>
@@ -56,6 +58,14 @@
       </div>
       <pre id="hardware-status" aria-live="polite">No device access requested.</pre>
     </article>
+  </section>
+  <section class="caution">
+    <h2>PWA lifecycle (manual control)</h2>
+    <div class="actions">
+      <button type="button" id="check-update">Check for update</button>
+      <button type="button" id="apply-update">Activate waiting update</button>
+    </div>
+    <output id="pwa-status" role="status" aria-live="polite">PWA update state not checked.</output>
   </section>
   <section class="caution"><strong>Browser boundaries still apply.</strong> Offline loading requires a successful first online installation of this example's service worker. Storage may be cleared or evicted; export critical data. Hardware access remains permission-controlled. This example intentionally does not sync to a public server.</section>
   <footer>Wonder Layer is a pure web SDK, not an OS permissions bypass or a native wrapper.</footer>

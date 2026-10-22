@@ -16,16 +16,19 @@ const validContent=value=>typeof value==="string"&&value.length<=100000;
 export async function openWonderStore(name="ryzova-wonder"){
   if(!globalThis.indexedDB)throw new Error("IndexedDB unavailable — offline persistence cannot be guaranteed");
   const db=await new Promise((resolve,reject)=>{
-    const req=globalThis.indexedDB.open(name,1);
+    const req=globalThis.indexedDB.open(name,2);
     req.onupgradeneeded=()=>{
       const target=req.result;
       if(!target.objectStoreNames.contains("records"))target.createObjectStore("records",{keyPath:"id"});
       if(!target.objectStoreNames.contains("outbox"))target.createObjectStore("outbox",{keyPath:"record_id"});
+      if(!target.objectStoreNames.contains("metadata"))target.createObjectStore("metadata",{keyPath:"key"});
     };
     req.onsuccess=()=>resolve(req.result);
     req.onerror=()=>reject(req.error);
     req.onblocked=()=>reject(new Error("Database upgrade blocked by another tab"));
   });
+  // Release the database connection when another tab requests a schema migration.
+  db.onversionchange=()=>db.close();
   let syncInFlight=null;
   const readAll=async storeName=>{
     const tx=db.transaction(storeName,"readonly"),done=transactionDone(tx);
@@ -46,6 +49,41 @@ export async function openWonderStore(name="ryzova-wonder"){
       records.put(record);
       tx.objectStore("outbox").put({record_id:id,content,expected_revision:revision,op_id});
       await done;return record;
+    },
+    async importRecords(items,{overwrite=false}={}){
+      if(!Array.isArray(items)||items.length>20000)throw new Error("Invalid recovery records");
+      const ids=new Set();
+      for(const value of items){
+        if(!validId(value?.id)||!validContent(value?.content)||ids.has(value.id))
+          throw new Error("Invalid or duplicate recovery record");
+        ids.add(value.id);
+      }
+      // One IndexedDB transaction: either all recovered records and outbox entries
+      // commit, or the browser rolls all changes back on abort / QuotaExceededError.
+      const tx=db.transaction(["records","outbox"],"readwrite");
+      const done=transactionDone(tx);
+      const records=tx.objectStore("records"),outbox=tx.objectStore("outbox");
+      let imported=0,skipped=0;
+      try{
+        for(const item of items){
+          const existing=await requestResult(records.get(item.id));
+          if(existing&&!overwrite){skipped++;continue;}
+          const revision=existing?.revision??0;
+          const row={id:item.id,content:item.content,revision,dirty:true,
+            updatedAt:new Date().toISOString()};
+          const op={record_id:item.id,content:item.content,expected_revision:revision,
+            op_id:globalThis.crypto.randomUUID()};
+          await requestResult(records.put(row));
+          await requestResult(outbox.put(op));
+          imported++;
+        }
+        await done;
+        return {imported,skipped};
+      }catch(error){
+        try{tx.abort();}catch{}
+        await done.catch(()=>{});
+        throw error;
+      }
     },
     async resolveConflict(id,mode,remote){
       if(!validId(id)||!validContent(remote?.content)||!Number.isSafeInteger(remote?.revision)||remote.revision<0)

@@ -1,5 +1,5 @@
 "use strict";
-const CACHE="ryzova-wonder-integration-v2";
+const CACHE="ryzova-wonder-integration-v3";
 const scope=self.registration.scope;
 const asset=(path)=>new URL(path,scope).href;
 const SHELL=[
@@ -8,14 +8,18 @@ const SHELL=[
   "../../src/wonder.js","../../src/store.js","../../src/capabilities.js",
   "../../src/compute.js","../../src/compute-worker.js","../../src/compute.wasm",
   "../../src/lifecycle.js","../../src/backup.js","../../src/files.js",
-  "../../src/scheduler.js","../../src/hardware.js"
+  "../../src/scheduler.js","../../src/hardware.js",
+  "../../src/recovery.js","../../src/reconnect.js","../../src/pwa.js"
 ].map(asset);
 self.addEventListener("install",event=>{
   event.waitUntil((async()=>{
     const cache=await caches.open(CACHE);
     await cache.addAll(SHELL);
-    await self.skipWaiting();
-  })());
+   })());
+});
+// Never auto-activate a replacement worker over unsaved user data.
+self.addEventListener("message",event=>{
+  if(event.data?.type==="WONDER_ACTIVATE_UPDATE")void self.skipWaiting();
 });
 self.addEventListener("activate",event=>{
   event.waitUntil((async()=>{
