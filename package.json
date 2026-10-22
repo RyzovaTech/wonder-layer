@@ -37,8 +37,8 @@
   "scripts": {
     "build": "node tools/build.mjs",
     "prepack": "npm run build",
-    "test": "node --test tests/*.test.mjs",
-    "test:sdk": "node --test tests/sdk-client.test.mjs tests/framework-adapters.test.mjs tests/distribution.test.mjs",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "test:sdk": "npm run build && node --test tests/sdk-client.test.mjs tests/framework-adapters.test.mjs tests/distribution.test.mjs",
     "pack:check": "npm pack --dry-run",
     "serve": "python3 -m http.server 8765",
     "test:browser": "python3 tests/browser_acceptance.py --browser chromium",
