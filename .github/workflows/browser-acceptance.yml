@@ -68,3 +68,44 @@ jobs:
           name: wonder-phase6-${{ matrix.browser }}-results
           path: results/${{ matrix.browser }}-*-acceptance.json
           if-no-files-found: warn
+
+  windows-macos-lab:
+    name: ${{ matrix.name }} native OS browser engine
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows Edge
+            os: windows-latest
+            browser: chromium
+            channel: msedge
+          - name: macOS WebKit
+            os: macos-latest
+            browser: webkit
+            channel: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Playwright Python dependencies
+        run: python -m pip install "playwright>=1.56,<2"
+      - name: Install Playwright browser where applicable
+        run: python -m playwright install ${{ matrix.browser }}
+      - name: Run actual OS browser acceptance
+        shell: bash
+        run: |
+          if [ -n "${{ matrix.channel }}" ]; then
+            python tests/browser_acceptance.py --browser ${{ matrix.browser }} --channel ${{ matrix.channel }} --output results/cross-os-${{ matrix.browser }}-${{ matrix.channel }}.json
+          else
+            python tests/browser_acceptance.py --browser ${{ matrix.browser }} --output results/cross-os-${{ matrix.browser }}.json
+          fi
+      - name: Upload OS browser acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wonder-cross-os-${{ matrix.browser }}-${{ matrix.os }}
+          path: results/cross-os-*.json
+          if-no-files-found: warn
