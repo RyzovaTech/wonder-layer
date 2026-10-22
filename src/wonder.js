@@ -4,6 +4,9 @@ import {createAdaptiveEngine} from "./scheduler.js";
 import {createHardwareBridge} from "./hardware.js";
 import {openWonderStore} from "./store.js";
 import {createForegroundSync} from "./lifecycle.js";
+import {createReconnectController} from "./reconnect.js";
+import {createPWALifecycle} from "./pwa.js";
+import {createRecoveryManager} from "./recovery.js";
 import {exportBackup,parseBackup} from "./backup.js";
 import {readPrivateFile,writePrivateFile,getStorageEstimate} from "./files.js";
 
@@ -11,6 +14,8 @@ export async function createWonderLayer({dbName="ryzova-wonder",endpoint="/api/s
   const store=await openWonderStore(dbName);
   const engine=createAdaptiveEngine();
   const hardware=createHardwareBridge();
+  const recovery=createRecoveryManager(store);
+  const pwa=createPWALifecycle();
   async function sync(){return store.sync(endpoint);}
   return {
     runtime:"pure-pwa",
@@ -20,20 +25,14 @@ export async function createWonderLayer({dbName="ryzova-wonder",endpoint="/api/s
     scheduler:engine,
     hardware,
     store,sync,
+    recovery,pwa,
+    reconnect:options=>createReconnectController(sync,options),
     foregroundSync:options=>createForegroundSync(sync,options),
     files:{read:readPrivateFile,write:writePrivateFile,estimate:getStorageEstimate},
-    async backup(){return exportBackup(await store.listRecords());},
-    async restore(payload,{overwrite=false}={}){
-      const rows=parseBackup(payload),existing=new Set((await store.listRecords()).map(x=>x.id));
-      let imported=0,skipped=0;
-      for(const row of rows){
-        if(!overwrite&&existing.has(row.id)){skipped++;continue;}
-        await store.save(row.id,row.content);imported++;existing.add(row.id);
-      }
-      return {imported,skipped};
-    },
+    async backup(){return recovery.export();},
+    async restore(payload,options){return recovery.restore(payload,options);},
     async requestPersistentStorage(){return !!(await globalThis.navigator?.storage?.persist?.());},
-    close:()=>store.close()
+    close:()=>{pwa.close();store.close();}
   };
 }
 export {detectCapabilities,inspectCapabilities} from "./capabilities.js";
@@ -42,3 +41,7 @@ export {parseBackup,exportBackup} from "./backup.js";
 
 export {createAdaptiveEngine} from "./scheduler.js";
 export {createHardwareBridge,WonderHardwareError} from "./hardware.js";
+
+export {createRecoveryManager,exportRecovery,parseRecovery} from "./recovery.js";
+export {createReconnectController} from "./reconnect.js";
+export {createPWALifecycle} from "./pwa.js";
