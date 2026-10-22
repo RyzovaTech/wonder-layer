@@ -8,11 +8,13 @@ import {execFileSync} from "node:child_process";
 import {tmpdir} from "node:os";
 import {basename,join,resolve} from "node:path";
 import {fileURLToPath} from "node:url";
+import {createServer} from "node:http";
+import {createRequire} from "node:module";
 
 const root=fileURLToPath(new URL("../",import.meta.url));
 const tmp=await mkdtemp(join(tmpdir(),"wonder-consumer-"));
 const result={schema:"ryzova-phase6-consumers-v1",dateUtc:new Date().toISOString(),
-  sdkPackage:"local npm tarball",projects:[],strictTypes:"unverified"};
+  sdkPackage:"local npm tarball",projects:[],strictTypes:"unverified",browserRuntime:[]};
 function command(file,args,cwd){
   console.log("> "+file+" "+args.join(" "));
   return execFileSync(file,args,{cwd,encoding:"utf8",stdio:["ignore","pipe","inherit"],
@@ -33,7 +35,7 @@ try{
   },null,2)+"\n");
   command("npm",["install","--no-audit","--no-fund","--save-exact",tarball,
     "vite@^7.0.0","typescript@^5.9.0","react@^19.0.0","react-dom@^19.0.0",
-    "@types/react@^19.0.0","@types/react-dom@^19.0.0","vue@^3.5.0","@vitejs/plugin-vue@^6.0.0"],project);
+    "@types/react@^19.0.0","@types/react-dom@^19.0.0","vue@^3.5.0","@vitejs/plugin-vue@^6.0.0","playwright@^1.56.0"],project);
 
   const frameworkRoot=resolve(root,"examples/frameworks");
   for(const kind of ["vanilla","react","vue"]){
@@ -92,7 +94,61 @@ void client;void createReactWonderBindings;void createVueWonderBindings;
     },files:["consumer.ts"]
   },null,2));
   command(join(project,"node_modules",".bin","tsc"),["--project","tsconfig.json"],project);
+
   result.strictTypes="pass";
+  // Test actual built consumer applications inside a real browser, not only Vite output.
+  command(join(project,"node_modules",".bin","playwright"),["install","--with-deps","chromium"],project);
+  const localRequire=createRequire(join(project,"package.json"));
+  const {chromium}=localRequire("playwright");
+  const browser=await chromium.launch({headless:true});
+  try{
+    for(const kind of ["vanilla","react","vue"]){
+      const publicRoot=join(project,"built-"+kind);
+      const server=createServer(async(req,res)=>{
+        try{
+          const pathname=decodeURIComponent(new URL(req.url??"/","http://localhost").pathname);
+          const name=pathname==="/"?"/index.html":pathname;
+          const absolute=resolve(publicRoot,"."+name);
+          if(!absolute.startsWith(publicRoot+"/") && absolute!==join(publicRoot,"index.html")){
+            res.writeHead(403);res.end("Forbidden");return;
+          }
+          const bytes=await readFile(absolute);
+          const ext=absolute.split(".").at(-1);
+          const mime=ext==="html"?"text/html":ext==="js"?"application/javascript":
+            ext==="css"?"text/css":ext==="wasm"?"application/wasm":"application/octet-stream";
+          res.writeHead(200,{"Content-Type":mime});res.end(bytes);
+        }catch{res.writeHead(404);res.end("Not found");}
+      });
+      await new Promise(resolve=>server.listen(0,"127.0.0.1",resolve));
+      const context=await browser.newContext(),page=await context.newPage();
+      const errors=[];
+      page.on("pageerror",error=>errors.push(error.message));
+      const url="http://127.0.0.1:"+server.address().port+"/";
+      try{
+        const response=await page.goto(url,{waitUntil:"load",timeout:25000});
+        if(!response?.ok())throw Error(kind+" consumer failed to load: "+response?.status());
+        if(kind==="vanilla"){
+          await page.locator("#save").waitFor({state:"visible"});
+          await page.waitForFunction(()=>!document.querySelector("#save").disabled,{timeout:20000});
+          await page.locator("#note").fill("wonder-"+kind+"-persisted");
+          await page.locator("#save").click();
+        }else{
+          await page.waitForFunction(()=>document.body.textContent.includes("ready"),{timeout:20000});
+          await page.locator("textarea").fill("wonder-"+kind+"-persisted");
+          await page.locator("button").first().click();
+        }
+        await page.waitForTimeout(100);
+        await page.reload({waitUntil:"load"});
+        if(kind==="vanilla")await page.waitForFunction(()=>document.querySelector("#note")?.value==="wonder-vanilla-persisted",{timeout:20000});
+        else await page.waitForFunction((name)=>document.querySelector("textarea")?.value===("wonder-"+name+"-persisted"),kind,{timeout:20000});
+        if(errors.length)throw Error(kind+" runtime page errors: "+errors.join("; "));
+        result.browserRuntime.push({framework:kind,status:"pass",reloadPersistence:true,userAgent:await page.evaluate(()=>navigator.userAgent)});
+      }finally{
+        await context.close();
+        await new Promise(resolve=>server.close(resolve));
+      }
+    }
+  }finally{await browser.close();}
   result.status="pass";
   console.log("Phase 6 external tarball consumer checks:",JSON.stringify(result,null,2));
 }catch(error){
