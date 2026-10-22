@@ -20,7 +20,7 @@ function command(file,args,cwd){
 }
 try{
   command("npm",["run","build"],root);
-  const stdout=command("npm",["pack","--json","--pack-destination",tmp],root);
+  const stdout=command("npm",["pack","--ignore-scripts","--json","--pack-destination",tmp],root);
   const pack=JSON.parse(stdout)[0];
   const tarball=join(tmp,pack.filename);
   result.tarball=pack.filename;

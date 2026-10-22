@@ -45,6 +45,9 @@ export function createWonderClient(options={}, {factory=createWonderLayer}={}){
   function stop(){
     if(disposed)return;
     version++;
+    // A stopped in-flight initialization must not be reused by a remount.
+    // The old promise will safely close any late-created SDK instance.
+    loading=null;
     const previous=layer;
     update("idle");
     previous?.close();
