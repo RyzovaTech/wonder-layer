@@ -37,3 +37,5 @@ jobs:
         run: npm test
       - name: Check archive contents and bundled assets
         run: npm pack --dry-run --ignore-scripts
+      - name: Assert public release remains blocked
+        run: node tools/release-gate.mjs
