@@ -34,7 +34,7 @@ def local_server():
 
 def run(browser_name="chromium", executable_path=None):
     from playwright.sync_api import sync_playwright
-    report = {"schema": "wonder-phase4-browser-v1", "date": datetime.now(timezone.utc).isoformat(),
+    report = {"schema": "wonder-phase6-browser-v2", "date": datetime.now(timezone.utc).isoformat(),
               "browser": browser_name, "checks": [], "status": "not-run"}
     ctx = None
     try:
@@ -46,7 +46,8 @@ def run(browser_name="chromium", executable_path=None):
             page = ctx.new_page()
             def check(name, fn):
                 detail = fn()
-                report["checks"].append({"name": name, "status": "pass", "detail": detail})
+                check_status="unsupported" if isinstance(detail, dict) and detail.get("state")=="unsupported" else "pass"
+                report["checks"].append({"name": name, "status": check_status, "detail": detail})
             def navigation():
                 response = page.goto(url, wait_until="load", timeout=25000)
                 assert response and response.ok, "Page failed to load"
@@ -107,6 +108,80 @@ def run(browser_name="chromium", executable_path=None):
                 assert abs(data["firstValues"][0]-2)<0.001
                 return {"backend": data["backend"], "ms": data["elapsedMs"], "fallbacks": data["failedAttempts"]}
             check("adaptive_compute", compute)
+
+            def explicit_backend_parity():
+                return page.evaluate("""async () => {
+                    const {createAdaptiveEngine} = await import("/src/wonder.js");
+                    const input=Float32Array.from({length:4096},(_,i)=>(i%101)/4);
+                    const engine=createAdaptiveEngine();
+                    const result={};
+                    for(const backend of ["js","wasm","worker"]){
+                      if(backend==="worker" && typeof Worker==="undefined"){
+                        result.worker={state:"unsupported"};continue;
+                      }
+                      const started=performance.now();
+                      const output=await engine.run(input,{prefer:backend});
+                      if(output.backend!==backend)throw Error("Unexpected backend: "+output.backend);
+                      for(let i=0;i<input.length;i++){
+                        const expected=Math.fround(Math.fround(input[i]*1.5)+2);
+                        if(Math.abs(output.data[i]-expected)>0.001)
+                          throw Error(backend+" mismatch at "+i);
+                      }
+                      result[backend]={state:"verified",elapsedMs:Number((performance.now()-started).toFixed(3))};
+                    }
+                    const gpuAvailable=typeof navigator.gpu?.requestAdapter==="function";
+                    let adapter=null;
+                    if(gpuAvailable)adapter=await navigator.gpu.requestAdapter();
+                    if(!adapter){result.gpu={state:"unsupported",reason:"No WebGPU adapter"};}
+                    else{
+                      const large=Float32Array.from({length:65536},(_,i)=>(i%101)/4);
+                      const gpu=await engine.run(large,{prefer:"gpu"});
+                      if(gpu.backend!=="gpu")throw Error("GPU dispatch did not execute");
+                      result.gpu={state:"verified",elements:large.length,elapsedMs:gpu.durationMs};
+                    }
+                    return result;
+                }""")
+            check("explicit_backend_numerical_parity",explicit_backend_parity)
+            def corrupted_backup_rejected():
+                return page.evaluate("""async () => {
+                    const {createWonderLayer} = await import("/src/wonder.js");
+                    const wonder=await createWonderLayer({dbName:"wonder-phase6-recovery-proof"});
+                    try{
+                      await wonder.store.save("keep","safe");
+                      const original=await wonder.backup();
+                      const modified=original.replace("safe","tampered");
+                      let rejected=false;
+                      try{await wonder.recovery.restore(modified);}catch(e){
+                        rejected=/checksum mismatch/.test(String(e.message));
+                      }
+                      const rows=await wonder.store.listRecords();
+                      if(!rejected||rows.length!==1||rows[0].content!=="safe")
+                        throw Error("Corrupted backup changed storage");
+                      return {integrity:"verified",recordPreserved:true};
+                    }finally{wonder.close();}
+                }""")
+            check("corrupted_backup_preserves_data",corrupted_backup_rejected)
+            def pwa_manifest_assets():
+                return page.evaluate("""async () => {
+                  const link=document.querySelector('link[rel="manifest"]');
+                  if(!link)throw Error("Missing manifest");
+                  const response=await fetch(link.href);
+                  if(!response.ok)throw Error("Manifest unavailable");
+                  const manifest=await response.json();
+                  if(manifest.display!=="standalone" || !manifest.icons?.length)
+                    throw Error("Unexpected manifest configuration");
+                  const checked=[];
+                  for(const icon of manifest.icons){
+                    const r=await fetch(new URL(icon.src,response.url));
+                    if(!r.ok)throw Error("Missing icon: "+icon.src);
+                    const bytes=await r.arrayBuffer();
+                    if(bytes.byteLength<100)throw Error("Invalid tiny icon: "+icon.src);
+                    checked.push({size:icon.sizes,bytes:bytes.byteLength});
+                  }
+                  return {manifestValid:true,icons:checked};
+                }""")
+            check("manifest_and_install_icon_assets",pwa_manifest_assets)
+
             def opfs():
                 return page.evaluate("""async () => {
                     if (!navigator.storage?.getDirectory) return {state:"unsupported"};
@@ -152,7 +227,7 @@ def run(browser_name="chromium", executable_path=None):
 if __name__=="__main__":
     parser=argparse.ArgumentParser()
     parser.add_argument("--browser", choices=("chromium","firefox","webkit"), default="chromium")
-    parser.add_argument("--output", default="results/phase4-browser-acceptance.json")
+    parser.add_argument("--output", default="results/phase6-browser-acceptance.json")
     parser.add_argument("--executable-path", default=None, help="Optional existing browser binary; OS policies still apply")
     args=parser.parse_args()
     report=run(args.browser,args.executable_path)
