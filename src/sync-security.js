@@ -5,6 +5,7 @@
 const validId=id=>typeof id==="string"&&id.length>0&&id.length<=120;
 export function validateSyncEndpoint(endpoint,{origin=globalThis.location?.origin}={}){
   if(typeof endpoint!=="string"||endpoint.length<1||endpoint.length>2048||
+     endpoint.trim()!==endpoint||
      /[\u0000-\u001f\u007f]/.test(endpoint))
     throw new TypeError("Invalid sync endpoint");
   if(!origin||origin==="null"){
