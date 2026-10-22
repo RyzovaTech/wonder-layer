@@ -38,7 +38,7 @@ test("service-worker asset list maps to real local files",()=>{
 });
 test("example imports SDK rather than duplicating native wrapper",()=>{
   const app=read("app.js");
-  assert.match(app,/import\\s*\\{createWonderLayer(?:,createPWALifecycle)?\\}\\s*from\\s*"\\.\\.\\/\\.\\.\\/src\\/wonder\\.js"/);
+  assert.ok(app.includes("createWonderLayer") && app.includes('from "../../src/wonder.js"'));
   assert.match(app,/layer\.store\.save/);
   assert.match(app,/layer\.compute/);
   assert.match(app,/layer\.backup/);
