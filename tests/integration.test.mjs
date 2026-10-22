@@ -69,3 +69,19 @@ test("Phase 3 SDK is imported by host PWA and offline cached",async()=>{
   assert.ok(sw.includes("../../src/hardware.js"));
   assert.ok(sw.includes("ryzova-wonder-integration-v3"));
 });
+
+test("Phase 4 PWA lifecycle, recovery, and cache dependencies are wired",async()=>{
+  const sdk=await import("../src/wonder.js");
+  assert.equal(typeof sdk.createReconnectController,"function");
+  assert.equal(typeof sdk.createRecoveryManager,"function");
+  assert.equal(typeof sdk.createPWALifecycle,"function");
+  const app=read("app.js"),html=read("index.html"),sw=read("sw.js");
+  for(const target of ["storage-check","storage-persist","check-update","apply-update","pwa-status"])
+    assert.ok(html.includes('id="'+target+'"'));
+  assert.match(app,/pwa\.register/);
+  assert.match(app,/recovery\.requestPersistence/);
+  assert.ok(!sw.includes("await self.skipWaiting()"));
+  assert.ok(sw.includes("WONDER_ACTIVATE_UPDATE"));
+  for(const path of ["../../src/recovery.js","../../src/reconnect.js","../../src/pwa.js"])
+    assert.ok(sw.includes(path));
+});

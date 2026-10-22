@@ -1,25 +1,26 @@
-import {createWonderLayer} from "../../src/wonder.js";
+import {createWonderLayer,createPWALifecycle} from "../../src/wonder.js";
 
 const $=id=>document.getElementById(id);
-let layer=null,deferredInstall=null;
+let layer=null;
+const pwa=createPWALifecycle({onState:state=>{
+  status("pwa-status",JSON.stringify(state));
+  if(state.state==="install-available")$("install").hidden=false;
+}});
 function status(id,msg){$(id).textContent=String(msg);}
 function net(){
   $("net").textContent=navigator.onLine?"● Browser reports online":"○ Browser reports offline";
   $("net").dataset.online=navigator.onLine?"yes":"no";
 }
 window.addEventListener("online",net);window.addEventListener("offline",net);net();
-window.addEventListener("beforeinstallprompt",event=>{
-  event.preventDefault();deferredInstall=event;$("install").hidden=false;
-});
 $("install").addEventListener("click",async()=>{
-  if(!deferredInstall)return;
-  const prompt=deferredInstall;deferredInstall=null;$("install").hidden=true;
-  try{await prompt.prompt();await prompt.userChoice;}
-  catch(error){status("storage-status","Installation: "+error.message);}
+  try{
+    const outcome=await pwa.requestInstall();
+    $("install").hidden=!outcome.available;
+  }catch(error){status("pwa-status","Install request: "+error.message);}
 });
 async function init(){
   if("serviceWorker" in navigator){
-    try{await navigator.serviceWorker.register("./sw.js",{scope:"./"});}
+    try{await pwa.register("./sw.js",{scope:"./"});}
     catch(error){status("storage-status","Service worker unavailable: "+error.message);}
   }
   layer=await createWonderLayer({dbName:"wonder-existing-pwa-example"});
@@ -122,4 +123,28 @@ $("geo-test").addEventListener("click",async()=>{
     // Do not display, log, transmit or store latitude/longitude in this demo.
     status("hardware-status","Location obtained; reported accuracy: "+Math.round(position.coords.accuracy)+" meters. No coordinates retained.");
   }catch(error){status("hardware-status",error.code?error.code+": "+error.message:error.message);}
+});
+
+$("storage-check").addEventListener("click",async()=>{
+  if(!layer)return;
+  try{status("storage-status",JSON.stringify(await layer.recovery.storageStatus()));}
+  catch(error){status("storage-status","Storage inspection failed: "+error.message);}
+});
+$("storage-persist").addEventListener("click",async()=>{
+  if(!layer)return;
+  try{
+    const result=await layer.recovery.requestPersistence();
+    status("storage-status",JSON.stringify(result)+" · Grant does not prevent user-clearing.");
+  }catch(error){status("storage-status","Persistence request failed: "+error.message);}
+});
+$("check-update").addEventListener("click",async()=>{
+  try{
+    const info=await pwa.checkForUpdate();
+    status("pwa-status",JSON.stringify(info));
+  }catch(error){status("pwa-status","Update check failed: "+error.message);}
+});
+$("apply-update").addEventListener("click",()=>{
+  // The host app must preserve its edits before activating a new version.
+  status("pwa-status",pwa.activateWaiting()?
+    "Update activation requested. Existing tabs may need reload.":"No waiting service worker.");
 });

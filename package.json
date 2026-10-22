@@ -15,6 +15,7 @@
     "serve": "python3 -m http.server 8765",
     "test:browser": "python3 tests/browser_acceptance.py --browser chromium",
     "bench:node": "node tools/compute_benchmark.mjs",
-    "test:phase3": "node --test tests/scheduler.test.mjs tests/hardware.test.mjs"
+    "test:phase3": "node --test tests/scheduler.test.mjs tests/hardware.test.mjs",
+    "test:phase4": "node --test tests/recovery.test.mjs tests/reconnect.test.mjs tests/pwa.test.mjs"
   }
 }

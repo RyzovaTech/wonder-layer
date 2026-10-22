@@ -177,3 +177,33 @@ test("older server revision cannot roll local record backward",withIndexedDB(asy
   assert.equal((await db.pending()).length,1);
   db.close();
 }));
+
+test("atomic bulk import preserves existing dirty record and creates outbox entries",withIndexedDB(async()=>{
+  const db=await openWonderStore("atomic-import");
+  try{
+    await db.save("existing","precious");
+    const result=await db.importRecords([
+      {id:"existing",content:"do-not-overwrite"},
+      {id:"new-a",content:"restored one"},
+      {id:"new-b",content:"restored two"}
+    ]);
+    assert.deepEqual(result,{imported:2,skipped:1});
+    const records=await db.listRecords();
+    assert.equal(records.find(x=>x.id==="existing").content,"precious");
+    assert.equal(records.find(x=>x.id==="new-a").dirty,true);
+    assert.equal((await db.pending()).length,3);
+    const overwritten=await db.importRecords([{id:"existing",content:"approved"}],{overwrite:true});
+    assert.deepEqual(overwritten,{imported:1,skipped:0});
+    assert.equal((await db.listRecords()).find(x=>x.id==="existing").content,"approved");
+  }finally{db.close();}
+}));
+test("bulk recovery rejects malformed batch before touching store",withIndexedDB(async()=>{
+  const db=await openWonderStore("invalid-import");
+  try{
+    await assert.rejects(db.importRecords([
+      {id:"one",content:"safe"},{id:"one",content:"duplicate"}
+    ]),/Invalid or duplicate/);
+    assert.equal((await db.listRecords()).length,0);
+    assert.equal((await db.pending()).length,0);
+  }finally{db.close();}
+}));
