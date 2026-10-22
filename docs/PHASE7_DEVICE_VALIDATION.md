@@ -6,6 +6,14 @@
 
 Run the repository over HTTPS on the target device (or localhost on that same device) and navigate to `/examples/device-lab/`. For a phone connecting to a development computer, ordinary `http://192.168.x.x` is **not a secure context** and will typically block hardware APIs. Use a trusted HTTPS deployment with authentication and access controls, or host on-device; avoid sharing private test data or exposing demo sync endpoints on the public Internet.
 
+After running the lab on a device, select the correct OS/browser and click **Download local JSON evidence**. On a trusted workstation, validate it offline:
+
+```bash
+node tools/verify-device-evidence.mjs ./wonder-device-acceptance.json
+```
+
+The checker permits only coarse outcome values and known metadata keys. It intentionally reports `SELF_REPORTED_DEVICE_EVIDENCE` and `attestedPhysicalDevice:false`: a JSON file by itself **cannot prove that real hardware was used** or that the tester was independent. A named, authorized device tester must separately verify provenance and give private sign-off. Keep these JSON files local or in a restricted evidence store, not in public GitHub issues.
+
 The lab uses **real user click events** to initiate camera, microphone, geolocation, Bluetooth, USB, HID, serial and WebGPU shader tests. Browser permissions and hardware support may vary. A denied prompt is **not** a passing capability test. Results are exported only when a user clicks Download and contain coarse statuses. The lab never transmits or retains raw coordinates, image frames, recorded audio, device IDs, or file contents.
 
 ### Matrix — record exact devices and evidence before changing status
