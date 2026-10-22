@@ -42,11 +42,23 @@ export async function workerTransform(input,options={}){
   if(typeof Worker!=="function")throw new Error("Workers unavailable");
   return new Promise((resolve,reject)=>{
     const worker=new Worker(new URL("./compute-worker.js",import.meta.url),{type:"module"});
-    const timer=setTimeout(()=>{worker.terminate();reject(new Error("Worker timeout"));},20000);
-    const done=(fn,value)=>{clearTimeout(timer);worker.terminate();fn(value);};
+    let settled=false;
+    const done=(fn,value)=>{
+      if(settled)return;
+      settled=true;clearTimeout(timer);
+      options.signal?.removeEventListener?.("abort",onAbort);
+      worker.terminate();fn(value);
+    };
+    const onAbort=()=>{const error=new Error("Worker operation aborted");error.name="AbortError";done(reject,error);};
+    const timer=setTimeout(()=>done(reject,new Error("Worker timeout")),20000);
+    options.signal?.addEventListener?.("abort",onAbort,{once:true});
+    if(options.signal?.aborted)return onAbort();
     worker.onmessage=e=>done(resolve,new Float32Array(e.data));
     worker.onerror=e=>done(reject,new Error(e.message||"Worker failed"));
-    worker.postMessage({values:input,gain:options.gain??1.5,bias:options.bias??2});
+    worker.onmessageerror=()=>done(reject,new Error("Worker message could not be decoded"));
+    try{
+      worker.postMessage({values:input,gain:options.gain??1.5,bias:options.bias??2});
+    }catch(error){done(reject,error);}
   });
 }
 export async function gpuTransform(input,options={},env=globalThis){
@@ -58,6 +70,8 @@ export async function gpuTransform(input,options={},env=globalThis){
   if(!U || !M)throw new Error("WebGPU constants unavailable");
   if(!input.length)return new Float32Array(0);
   if(input.byteLength>device.limits.maxStorageBufferBindingSize)throw new Error("GPU binding too large");
+  if(Math.ceil(input.length/64)>device.limits.maxComputeWorkgroupsPerDimension)
+    throw new Error("GPU dispatch exceeds device limits");
   const buffers=[];
   const make=(size,usage)=>{const b=device.createBuffer({size,usage});buffers.push(b);return b;};
   const inBuf=make(input.byteLength,U.STORAGE|U.COPY_DST);

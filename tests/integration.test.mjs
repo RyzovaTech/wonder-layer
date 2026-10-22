@@ -52,3 +52,20 @@ test("example serves a local-only PWA with no public sync",()=>{
   assert.doesNotMatch(html,/https?:\/\/[^" ]+/);
   assert.ok(read("app.js").includes("wonder-existing-pwa-example"));
 });
+
+test("Phase 3 SDK is imported by host PWA and offline cached",async()=>{
+  const sdk=await import("../src/wonder.js");
+  assert.equal(typeof sdk.createAdaptiveEngine,"function");
+  assert.equal(typeof sdk.createHardwareBridge,"function");
+  const html=read("index.html");
+  const app=read("app.js");
+  const sw=read("sw.js");
+  for(const id of ["hardware-inspect","camera-test","geo-test","policy","calibrate","hardware-status"])
+    assert.ok(html.includes('id="'+id+'"'),id);
+  assert.match(app,/layer\.hardware\.request/);
+  assert.match(app,/layer\.scheduler\.stats/);
+  assert.match(app,/layer\.scheduler\.calibrate/);
+  assert.ok(sw.includes("../../src/scheduler.js"));
+  assert.ok(sw.includes("../../src/hardware.js"));
+  assert.ok(sw.includes("ryzova-wonder-integration-v2"));
+});
