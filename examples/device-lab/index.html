@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Wonder Layer — Physical Device Acceptance Lab</title>
+  <style>
+    :root{font:16px/1.5 system-ui,sans-serif;color-scheme:light dark}
+    body{max-width:850px;margin:0 auto;padding:1.4rem}
+    h1{line-height:1.1}label{display:block;margin:.75rem 0}
+    input,select,button{font:inherit;padding:.6rem;border-radius:.45rem}
+    input,select{max-width:100%}
+    button{margin:.25rem;cursor:pointer}
+    button:focus-visible{outline:3px solid dodgerblue}
+    section{border:1px solid #8887;padding:1rem;border-radius:.75rem;margin:1rem 0}
+    pre{white-space:pre-wrap;word-wrap:break-word;max-height:20rem;overflow:auto}
+    .note{padding:.7rem;border-inline-start:4px solid #cc8a11;background:#8881}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Wonder Layer — Physical Device Lab</h1>
+    <p class="note">Experimental engineering verification only. HTTPS or localhost is required for privileged Web APIs. All tests require an explicit click. This page does not upload, persist or display coordinates, camera frames, microphone samples, device identifiers or file contents.</p>
+    <section>
+      <h2>Identify your test environment manually</h2>
+      <label>Operating system
+        <select id="os">
+          <option value="unspecified">Select OS</option>
+          <option>Android</option><option>iOS</option><option>Windows</option>
+          <option>macOS</option><option>Linux</option>
+        </select>
+      </label>
+      <label>Browser
+        <select id="browser">
+          <option value="unspecified">Select browser</option>
+          <option>Chrome</option><option>Edge</option><option>Firefox</option>
+          <option>Safari</option><option>Other</option>
+        </select>
+      </label>
+      <label>Browser version (optional, no account/device identifiers)
+        <input id="version" maxlength="24" autocomplete="off" placeholder="e.g. 19.0">
+      </label>
+      <p id="context" role="status">No permissions requested.</p>
+    </section>
+    <section>
+      <h2>Click to request a capability</h2>
+      <p>Only the browser itself can grant permission. You may decline any test. For camera/microphone, acquired tracks are stopped immediately.</p>
+      <div id="tests">
+        <button type="button" data-test="camera">Camera permission</button>
+        <button type="button" data-test="microphone">Microphone permission</button>
+        <button type="button" data-test="geolocation">Location accuracy only</button>
+        <button type="button" data-test="bluetooth">Bluetooth chooser</button>
+        <button type="button" data-test="usb">USB chooser</button>
+        <button type="button" data-test="hid">HID chooser</button>
+        <button type="button" data-test="serial">Serial chooser</button>
+        <button type="button" data-test="gpu">Execute real WebGPU shader</button>
+      </div>
+      <pre id="status" role="status" aria-live="polite">Ready. Nothing requested.</pre>
+    </section>
+    <section>
+      <h2>Export privacy-minimized evidence</h2>
+      <p>Includes only manually selected OS/browser, approximate version, coarse pass/denied/unsupported outcomes, and GPU numerical parity. Does not send results anywhere.</p>
+      <button type="button" id="download">Download local JSON evidence</button>
+      <button type="button" id="clear">Clear local in-memory results</button>
+    </section>
+  </main>
+  <script type="module" src="./lab.js"></script>
+</body>
+</html>
+
