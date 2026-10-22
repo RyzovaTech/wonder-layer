@@ -15,10 +15,11 @@ const root=fileURLToPath(new URL("../",import.meta.url));
 const tmp=await mkdtemp(join(tmpdir(),"wonder-consumer-"));
 const result={schema:"ryzova-phase6-consumers-v1",dateUtc:new Date().toISOString(),
   sdkPackage:"local npm tarball",projects:[],strictTypes:"unverified",browserRuntime:[]};
-function command(file,args,cwd){
+function command(file,args,cwd,{timeoutMs=4*60*1000,streamOutput=false}={}){
   console.log("> "+file+" "+args.join(" "));
-  return execFileSync(file,args,{cwd,encoding:"utf8",stdio:["ignore","pipe","inherit"],
-    timeout:4*60*1000,env:{...process.env,CI:"true"}});
+  return execFileSync(file,args,{cwd,encoding:"utf8",
+    stdio:["ignore",streamOutput?"inherit":"pipe","inherit"],
+    timeout:timeoutMs,env:{...process.env,CI:"true"}});
 }
 try{
   command("npm",["run","build"],root);
@@ -97,7 +98,13 @@ void client;void createReactWonderBindings;void createVueWonderBindings;
 
   result.strictTypes="pass";
   // Test actual built consumer applications inside a real browser, not only Vite output.
-  command(join(project,"node_modules",".bin","playwright"),["install","--with-deps","chromium","firefox","webkit"],project);
+  // Downloading three browser engines and apt dependencies can exceed the
+  // default 4-minute command timeout even on a healthy GitHub runner.
+  // Keep short timeouts for builds, but allocate bounded time for browser setup
+  // and stream installation diagnostics rather than hiding stdout.
+  command(join(project,"node_modules",".bin","playwright"),
+    ["install","--with-deps","chromium","firefox","webkit"],project,
+    {timeoutMs:15*60*1000,streamOutput:true});
   const localRequire=createRequire(join(project,"package.json"));
   const {chromium,firefox,webkit}=localRequire("playwright");
   for(const [browserName,browserType] of Object.entries({chromium,firefox,webkit})){
