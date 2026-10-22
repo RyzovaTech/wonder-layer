@@ -31,7 +31,7 @@ def local_server():
         srv.server_close()
         thread.join(timeout=3)
 
-def run(browser_name="chromium"):
+def run(browser_name="chromium", executable_path=None):
     from playwright.sync_api import sync_playwright
     report = {"schema": "wonder-phase2-browser-v1", "date": datetime.now(timezone.utc).isoformat(),
               "browser": browser_name, "checks": [], "status": "not-run"}
@@ -39,7 +39,9 @@ def run(browser_name="chromium"):
     try:
         with local_server() as url, tempfile.TemporaryDirectory() as profile, sync_playwright() as p:
             browser = getattr(p, browser_name)
-            ctx = browser.launch_persistent_context(profile, headless=True, service_workers="allow", accept_downloads=True)
+            launch_args={"headless":True,"service_workers":"allow","accept_downloads":True}
+            if executable_path: launch_args["executable_path"]=executable_path
+            ctx = browser.launch_persistent_context(profile, **launch_args)
             page = ctx.new_page()
             def check(name, fn):
                 detail = fn()
@@ -94,7 +96,9 @@ def run(browser_name="chromium"):
             def restart():
                 nonlocal ctx, page
                 ctx.close()
-                ctx=browser.launch_persistent_context(profile, headless=True, offline=True, service_workers="allow")
+                restart_args={"headless":True,"offline":True,"service_workers":"allow"}
+                if executable_path: restart_args["executable_path"]=executable_path
+                ctx=browser.launch_persistent_context(profile, **restart_args)
                 page=ctx.new_page()
                 page.goto(url,wait_until="load",timeout=20000)
                 page.locator("#load").click()
@@ -117,8 +121,9 @@ if __name__=="__main__":
     parser=argparse.ArgumentParser()
     parser.add_argument("--browser", choices=("chromium","firefox","webkit"), default="chromium")
     parser.add_argument("--output", default="results/phase2-browser-acceptance.json")
+    parser.add_argument("--executable-path", default=None, help="Optional existing browser binary; OS policies still apply")
     args=parser.parse_args()
-    report=run(args.browser)
+    report=run(args.browser,args.executable_path)
     output=Path(args.output);output.parent.mkdir(parents=True,exist_ok=True)
     output.write_text(json.dumps(report,indent=2)+"\n",encoding="utf8")
     print(json.dumps({"status":report["status"],"checks":report["checks"],"error":report.get("error")},indent=2))
