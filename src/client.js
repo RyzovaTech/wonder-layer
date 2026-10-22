@@ -60,7 +60,9 @@ export function createWonderClient(options={}, {factory=createWonderLayer}={}){
     if(typeof listener!=="function")throw new TypeError("Expected listener");
     if(disposed)throw new Error("Wonder client is disposed");
     listeners.add(listener);
-    if(emitCurrent)listener(snapshot());
+    if(emitCurrent){
+      try{listener(snapshot());}catch{/* bad subscriber cannot interrupt registration */}
+    }
     return ()=>listeners.delete(listener);
   }
   return Object.freeze({start,stop,dispose,subscribe,snapshot,
