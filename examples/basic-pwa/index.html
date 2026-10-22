@@ -40,8 +40,21 @@
       <p>One operation, adaptive WebGPU / WASM / Worker / JS selection with numerical verification.</p>
       <label for="count">Vector length</label>
       <select id="count"><option value="8192">8,192</option><option value="65536">65,536</option><option value="262144">262,144</option></select>
+      <label for="policy">Processing priority</label>
+      <select id="policy"><option value="throughput">Throughput</option><option value="responsive">UI responsiveness (Worker first)</option></select>
       <div class="actions"><button id="compute" type="button">Run real compute</button><button type="button" id="inspect">Inspect runtime</button></div>
       <pre id="compute-status" aria-live="polite">Not started.</pre>
+    </article>
+    <article>
+      <div class="kicker">03 / PERMISSION-GATED HARDWARE</div>
+      <h2>Device capability bridge</h2>
+      <p>Support detection never requests hardware access. Camera and location are requested only when you explicitly click.</p>
+      <div class="actions">
+        <button id="hardware-inspect" type="button">Inspect device APIs</button>
+        <button id="camera-test" type="button">Request camera, then stop</button>
+        <button id="geo-test" type="button">Request location accuracy</button>
+      </div>
+      <pre id="hardware-status" aria-live="polite">No device access requested.</pre>
     </article>
   </section>
   <section class="caution"><strong>Browser boundaries still apply.</strong> Offline loading requires a successful first online installation of this example's service worker. Storage may be cleared or evicted; export critical data. Hardware access remains permission-controlled. This example intentionally does not sync to a public server.</section>

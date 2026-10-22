@@ -68,9 +68,10 @@ $("compute").addEventListener("click",async()=>{
   status("compute-status","Computing "+count+" elements…");
   const start=performance.now();
   try{
-    const result=await layer.compute(input);
+    const result=await layer.compute(input,{policy:$("policy").value});
     status("compute-status",JSON.stringify({
-      backend:result.backend,elapsedMs:Number((performance.now()-start).toFixed(2)),
+      backend:result.backend,policy:$("policy").value,elapsedMs:Number((performance.now()-start).toFixed(2)),
+      attempted:result.attempted,stats:layer.scheduler.stats(),
       firstValues:Array.from(result.data.slice(0,5)),failedAttempts:result.failures
     },null,2));
   }catch(error){status("compute-status","Compute failed: "+error.message);}
@@ -85,3 +86,28 @@ init().catch(error=>{
   status("compute-status","SDK initialization failed: "+error.message);
 });
 
+
+$("hardware-inspect").addEventListener("click",()=>{
+  if(!layer)return status("hardware-status","SDK not initialized");
+  status("hardware-status",JSON.stringify(layer.hardware.capabilities(),null,2));
+});
+$("camera-test").addEventListener("click",async()=>{
+  if(!layer)return status("hardware-status","SDK not initialized");
+  status("hardware-status","Camera permission may be requested by your browser.");
+  try{
+    const stream=await layer.hardware.request("camera",{video:true,audio:false});
+    const count=stream.getTracks().length;
+    // This proof-of-concept never stores or transmits any camera frames.
+    stream.getTracks().forEach(track=>track.stop());
+    status("hardware-status","Camera access successful; "+count+" track(s) stopped immediately.");
+  }catch(error){status("hardware-status",error.code?error.code+": "+error.message:error.message);}
+});
+$("geo-test").addEventListener("click",async()=>{
+  if(!layer)return status("hardware-status","SDK not initialized");
+  status("hardware-status","Location permission may be requested by your browser.");
+  try{
+    const position=await layer.hardware.request("geolocation",{timeout:8000});
+    // Do not display, log, transmit or store latitude/longitude in this demo.
+    status("hardware-status","Location obtained; reported accuracy: "+Math.round(position.coords.accuracy)+" meters. No coordinates retained.");
+  }catch(error){status("hardware-status",error.code?error.code+": "+error.message:error.message);}
+});

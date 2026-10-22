@@ -14,6 +14,16 @@ Ryzova Wonder Layer is a framework-independent experimental SDK for giving exist
 - **PWA lifecycle:** host app owns its service worker and permissions; no native packaging required
 - **Foreground sync:** a retry-capable local outbox. The demo does **not** contact an unauthenticated public backend.
 
+## Phase 3 — Capability engine (engineering implementation)
+
+- **Adaptive scheduler:** size-based backend selection, responsive Worker priority, validated results, numerical failover, backend cooldown, execution telemetry, cooperative AbortSignal support.
+- **Explicit hardware bridge:** camera, microphone, geolocation, Bluetooth, USB, HID, Serial, NFC, clipboard, sharing, screen wake lock and local file-picker (where supported).
+- **No implicit permissions:** hardware is only requested after host app explicitly invokes `wonder.hardware.request(...)` from a user action.
+- **SDK integration:** `wonder.compute(input, {policy: "responsive"})`, `wonder.scheduler.inspect()`, `wonder.scheduler.stats()`, `wonder.hardware.capabilities()`.
+- **Boundaries:** adapter readiness is not execution proof; browser APIs are permission- and platform-dependent. No native wrapper, background-runtime guarantee or silent hardware access.
+
+See [Phase 3 architecture and tests](docs/PHASE3_CAPABILITY_ENGINE.md).
+
 ## Run the existing-PWA integration example
 
 Requirements: Python 3 and an unrestricted browser.
