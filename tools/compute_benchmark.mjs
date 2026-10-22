@@ -1,47 +1,40 @@
-// Node CPU/WASM benchmark only. Do not describe this as browser GPU evidence.
+// Performance evidence: hot kernel ONLY. WASM startup, transfer cost and GPU are excluded.
 import {readFileSync} from "node:fs";
 import {cpus,platform,arch} from "node:os";
 import {performance} from "node:perf_hooks";
 import {fileURLToPath} from "node:url";
-import {jsTransform} from "../src/compute.js";
-
-const size=Number(process.argv[2]??65536);
-const rounds=Number(process.argv[3]??9);
-if(!Number.isSafeInteger(size)||size<64||size>1_000_000||
-   !Number.isSafeInteger(rounds)||rounds<3||rounds>30)
-  throw new Error("Expected size 64..1000000 and rounds 3..30");
+const sizes=[8192,65536,262144],rounds=13;
 const wasm=readFileSync(fileURLToPath(new URL("../src/compute.wasm",import.meta.url)));
-const module=await WebAssembly.compile(wasm);
-const {exports}=new WebAssembly.Instance(module);
+const compiled=await WebAssembly.compile(wasm);
+const {exports}=new WebAssembly.Instance(compiled);
 const {memory,transform}=exports;
-const input=Float32Array.from({length:size},(_,i)=>(i%101)/4);
-const offset=65536,outputOffset=offset+input.byteLength;
-const needed=Math.ceil((outputOffset+input.byteLength)/65536);
-if(needed>memory.buffer.byteLength/65536)memory.grow(needed-memory.buffer.byteLength/65536);
-new Float32Array(memory.buffer,offset,size).set(input);
-const js=()=>jsTransform(input,{gain:1.5,bias:2});
-const wasmRun=()=>{transform(offset,outputOffset,size,1.5,2);
-  return new Float32Array(memory.buffer,outputOffset,size);};
-const a=js(),b=wasmRun();
-for(let i=0;i<size;i++)if(Math.abs(a[i]-b[i])>0.001)
-  throw new Error("WASM numerical parity failed at index "+i);
-function measure(fn){
-  for(let i=0;i<3;i++)fn();
-  const samples=[];
-  for(let i=0;i<rounds;i++){
-    const start=performance.now();fn();samples.push(performance.now()-start);
-  }
-  samples.sort((x,y)=>x-y);
-  return {medianMs:Number(samples[Math.floor(samples.length/2)].toFixed(3)),
-          samplesMs:samples.map(x=>Number(x.toFixed(3)))};
+const rows=[];
+for(const size of sizes){
+  const input=Float32Array.from({length:size},(_,i)=>(i%101)/4);
+  const output=new Float32Array(size);
+  const inPtr=65536,outPtr=inPtr+input.byteLength;
+  const pages=Math.ceil((outPtr+input.byteLength)/65536);
+  if(pages>memory.buffer.byteLength/65536)memory.grow(pages-memory.buffer.byteLength/65536);
+  new Float32Array(memory.buffer,inPtr,size).set(input);
+  const outWasm=new Float32Array(memory.buffer,outPtr,size);
+  const js=()=>{for(let i=0;i<size;i++)output[i]=input[i]*1.5+2;return output;};
+  const hotWasm=()=>{transform(inPtr,outPtr,size,1.5,2);return outWasm;};
+  js();hotWasm();
+  for(let i=0;i<size;i++)if(Math.abs(output[i]-outWasm[i])>0.001)
+    throw new Error("WASM parity mismatch at "+i);
+  const measure=fn=>{
+    for(let i=0;i<8;i++)fn();
+    const times=[];
+    for(let i=0;i<rounds;i++){const start=performance.now();fn();times.push(performance.now()-start);}
+    times.sort((a,b)=>a-b);
+    return Number(times[Math.floor(times.length/2)].toFixed(4));
+  };
+  rows.push({elements:size,jsInPlaceMedianMs:measure(js),wasmHotMedianMs:measure(hotWasm)});
 }
 console.log(JSON.stringify({
-  schema:"wonder-phase2-node-benchmark-v1",
-  measuredAt:new Date().toISOString(),
+  schema:"wonder-phase2-hot-cpu-benchmark-v2",date:new Date().toISOString(),
   environment:{node:process.version,os:platform(),arch:arch(),cpu:cpus()[0]?.model??"unknown"},
-  workload:{elements:size,rounds,operation:"float32 *1.5 +2"},
-  wasmBinaryVerified:true,
-  result:{javascript:measure(js),wasm:measure(wasmRun)},
-  notMeasured:["WebGPU hardware","browser WASM startup","Web Workers","installability"],
-  note:"CPU-only Node experiment: no native parity or GPU claim"
+  rounds,wasmParity:true,results:rows,
+  excluded:["WASM compilation/startup","JS-to-WASM input copy","Worker startup/message overhead","physical WebGPU execution","browser execution"],
+  note:"CPU hot-kernel comparison; does not prove end-to-end application speed or native parity"
 },null,2));
