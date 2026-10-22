@@ -32,17 +32,25 @@ def local_server():
         srv.server_close()
         thread.join(timeout=3)
 
-def run(browser_name="chromium", executable_path=None):
+def run(browser_name="chromium", executable_path=None, profile="desktop"):
     from playwright.sync_api import sync_playwright
-    report = {"schema": "wonder-phase6-browser-v2", "date": datetime.now(timezone.utc).isoformat(),
-              "browser": browser_name, "checks": [], "status": "not-run"}
+    report = {"schema": "wonder-phase6-browser-v3", "date": datetime.now(timezone.utc).isoformat(),
+              "browser": browser_name, "profile": profile, "checks": [], "status": "not-run"}
     ctx = None
     try:
-        with local_server() as url, tempfile.TemporaryDirectory() as profile, sync_playwright() as p:
+        with local_server() as url, tempfile.TemporaryDirectory() as user_profile, sync_playwright() as p:
+            profile_mode=profile
+            if profile_mode not in ("desktop","mobile"):
+                raise ValueError("Unsupported browser profile")
+            if browser_name=="firefox" and profile_mode=="mobile":
+                raise ValueError("Playwright Firefox does not support mobile context emulation")
             browser = getattr(p, browser_name)
             launch_args={"headless":True,"service_workers":"allow","accept_downloads":True}
             if executable_path: launch_args["executable_path"]=executable_path
-            ctx = browser.launch_persistent_context(profile, **launch_args)
+            if profile_mode=="mobile":
+                launch_args.update(is_mobile=True,has_touch=True,
+                    viewport={"width":390,"height":844},device_scale_factor=3)
+            ctx = browser.launch_persistent_context(user_profile, **launch_args)
             page = ctx.new_page()
             def check(name, fn):
                 detail = fn()
@@ -54,11 +62,33 @@ def run(browser_name="chromium", executable_path=None):
                 return {"http": response.status, "title": page.title()}
             check("online_navigation", navigation)
             report["userAgent"] = page.evaluate("navigator.userAgent")
+            report["runtime"] = page.evaluate("""() => ({
+              viewport:{width:innerWidth,height:innerHeight},
+              touchPoints:navigator.maxTouchPoints,
+              secureContext:isSecureContext,
+              standalone:matchMedia("(display-mode: standalone)").matches
+            })""")
+            if profile_mode=="mobile" and (report["runtime"]["touchPoints"]<1 or report["runtime"]["viewport"]["width"]>500):
+                raise AssertionError("Mobile emulation was not applied")
             def controlled():
                 page.reload(wait_until="load")
                 page.wait_for_function("() => !!navigator.serviceWorker?.controller", timeout=15000)
                 return page.evaluate("navigator.serviceWorker.controller.scriptURL")
             check("service_worker_control", controlled)
+            def ui_keyboard_and_responsive_layout():
+                title=page.locator("h1")
+                assert title.is_visible(), "Hero title missing"
+                assert page.locator("html").get_attribute("lang")=="en", "Document language missing"
+                assert page.locator("textarea#note").get_attribute("id")=="note"
+                dimensions=page.evaluate("""() => ({
+                  screen: document.documentElement.clientWidth,
+                  scroll: document.documentElement.scrollWidth,
+                  controls: Array.from(document.querySelectorAll("button")).length
+                })""")
+                assert dimensions["scroll"]<=dimensions["screen"]+3, "Horizontal overflow in application"
+                assert dimensions["controls"]>=8
+                return dimensions
+            check("basic_accessibility_and_layout",ui_keyboard_and_responsive_layout)
             def save():
                 page.locator("#note").fill("wonder-phase2-offline-proof")
                 page.locator("#save").click()
@@ -222,7 +252,10 @@ def run(browser_name="chromium", executable_path=None):
                 ctx.close()
                 restart_args={"headless":True,"offline":True,"service_workers":"allow"}
                 if executable_path: restart_args["executable_path"]=executable_path
-                ctx=browser.launch_persistent_context(profile, **restart_args)
+                if profile_mode=="mobile":
+                    restart_args.update(is_mobile=True,has_touch=True,
+                        viewport={"width":390,"height":844},device_scale_factor=3)
+                ctx=browser.launch_persistent_context(user_profile, **restart_args)
                 page=ctx.new_page()
                 page.goto(url,wait_until="load",timeout=20000)
                 page.locator("#load").click()
@@ -244,10 +277,12 @@ def run(browser_name="chromium", executable_path=None):
 if __name__=="__main__":
     parser=argparse.ArgumentParser()
     parser.add_argument("--browser", choices=("chromium","firefox","webkit"), default="chromium")
+    parser.add_argument("--profile",choices=("desktop","mobile"),default="desktop",
+                        help="Mobile emulation is available for Chromium and WebKit only")
     parser.add_argument("--output", default="results/phase6-browser-acceptance.json")
     parser.add_argument("--executable-path", default=None, help="Optional existing browser binary; OS policies still apply")
     args=parser.parse_args()
-    report=run(args.browser,args.executable_path)
+    report=run(args.browser,args.executable_path,args.profile)
     output=Path(args.output);output.parent.mkdir(parents=True,exist_ok=True)
     output.write_text(json.dumps(report,indent=2)+"\n",encoding="utf8")
     print(json.dumps({"status":report["status"],"checks":report["checks"],"error":report.get("error")},indent=2))
