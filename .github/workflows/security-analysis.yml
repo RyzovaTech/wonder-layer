@@ -36,5 +36,7 @@ jobs:
           node-version: '22'
       - name: Verify release blocked
         run: node tools/release-gate.mjs
+      - name: Generate lockfile for this zero-runtime-dependency SDK
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - name: Audit npm runtime dependency manifest
-        run: npm audit --omit=dev --audit-level=high --package-lock-only
+        run: npm audit --omit=dev --audit-level=high
