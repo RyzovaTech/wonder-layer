@@ -1,0 +1,33 @@
+name: SDK checks
+on:
+  push:
+    branches:
+      - main
+      - 'engineering/**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  node-tests:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Validate JavaScript syntax
+        run: |
+          for file in src/*.js examples/basic-pwa/*.js; do node --check "$file"; done
+      - name: Execute SDK and integration checks
+        run: npm test

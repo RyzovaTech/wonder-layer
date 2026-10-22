@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b1730">
+  <meta name="description" content="Wonder Layer installed into an existing pure Progressive Web App.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+  <title>Wonder Layer | Existing PWA Integration</title>
+</head>
+<body>
+<main class="shell">
+  <header><div class="brand"><span class="mark">W.</span><span>RYZOVA <strong>WONDER LAYER</strong></span></div><div id="net" role="status">Checking connection…</div></header>
+  <section class="intro">
+    <p class="eyebrow">PURE PWA · INTEGRATION DEMO</p>
+    <h1>One web app.<br><em>More capable.</em></h1>
+    <p>This is a standalone PWA consuming Wonder Layer's framework-independent SDK. The app is not repackaged as a native app.</p>
+    <button id="install" type="button" hidden>Install PWA</button>
+  </section>
+  <section class="grid">
+    <article>
+      <div class="kicker">01 / LOCAL FIRST</div>
+      <h2>Offline note</h2>
+      <label for="note">Write something. Disconnect your internet. Reload.</label>
+      <textarea id="note" rows="6" placeholder="Your note is saved to IndexedDB."></textarea>
+      <div class="actions">
+        <button type="button" id="save">Save locally</button>
+        <button type="button" id="load">Reopen</button>
+        <button type="button" id="export">Export backup</button>
+        <label class="import">Import backup <input type="file" id="import" accept=".json,application/json"></label>
+      </div>
+      <output id="storage-status" role="status" aria-live="polite">Initializing offline database…</output>
+    </article>
+    <article>
+      <div class="kicker">02 / ADAPTIVE COMPUTE</div>
+      <h2>Native-like compute</h2>
+      <p>One operation, adaptive WebGPU / WASM / Worker / JS selection with numerical verification.</p>
+      <label for="count">Vector length</label>
+      <select id="count"><option value="8192">8,192</option><option value="65536">65,536</option><option value="262144">262,144</option></select>
+      <div class="actions"><button id="compute" type="button">Run real compute</button><button type="button" id="inspect">Inspect runtime</button></div>
+      <pre id="compute-status" aria-live="polite">Not started.</pre>
+    </article>
+  </section>
+  <section class="caution"><strong>Browser boundaries still apply.</strong> Offline loading requires a successful first online installation of this example's service worker. Storage may be cleared or evicted; export critical data. Hardware access remains permission-controlled. This example intentionally does not sync to a public server.</section>
+  <footer>Wonder Layer is a pure web SDK, not an OS permissions bypass or a native wrapper.</footer>
+</main>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
+
