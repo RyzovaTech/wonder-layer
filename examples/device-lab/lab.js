@@ -21,10 +21,17 @@ async function runTest(kind){
   let status="pass",detail="none";
   try{
     if(kind==="gpu"){
-      const values=Float32Array.from({length:65536},(_,i)=>(i%101)/4);
-      const result=await engine.run(values,{prefer:"gpu",policy:"throughput"});
-      if(result.backend!=="gpu")throw Error("GPU did not execute");
-      detail="verified numeric shader output";
+      const adapter=typeof navigator.gpu?.requestAdapter==="function"
+        ? await navigator.gpu.requestAdapter() : null;
+      if(!adapter){
+        status="unsupported";
+        detail="No browser-accessible WebGPU adapter";
+      }else{
+        const values=Float32Array.from({length:65536},(_,i)=>(i%101)/4);
+        const result=await engine.run(values,{prefer:"gpu",policy:"throughput"});
+        if(result.backend!=="gpu")throw Error("GPU did not execute");
+        detail="verified numeric shader output";
+      }
     }else if(kind==="camera"||kind==="microphone"){
       const stream=await bridge.request(kind);
       // Never retain raw media data, even transiently.
@@ -46,8 +53,12 @@ async function runTest(kind){
   }catch(error){
     status=classify(error);
     // GPU may be unavailable without throwing a typed WonderHardwareError.
-    if(kind==="gpu")status="unsupported";
-    detail=error?.code??"unverified capability";
+    if(kind==="gpu"){
+      status="error";
+      detail="WebGPU adapter present but compute dispatch or numerical validation failed";
+    }else{
+      detail=error?.code??"unverified capability";
+    }
   }
   const evidence={capability:kind,status,detail,elapsedBand:
     performance.now()-started<1000?"<1s":performance.now()-started<10000?"1–10s":">10s"};
