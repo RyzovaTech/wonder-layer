@@ -6,6 +6,30 @@ Ryzova Wonder Layer is a framework-independent experimental SDK for giving exist
 
 > **Engineering baseline, not a production release.** Browser acceptance and actual WebGPU hardware execution are not yet verified. A browser SDK cannot bypass device permissions, guarantee indefinite background execution, or silently install applications.
 
+## Phase 5 — Universal Developer SDK package
+
+Wonder Layer now has a **dependency-free, tree-shakeable ESM distribution** with TypeScript declarations, React and Vue integration adapters and a testable npm package archive. The package is **private / pre-release** until RyzovaTech selects the commercial or open-source license and authorizes publication.
+
+```sh
+npm test             # run the current SDK and integration suites (after building)
+npm run build        # generates dist with actual WASM and Worker assets
+npm pack             # creates a local SDK tarball for testing, NOT a registry publication
+```
+
+After `npm pack`, install the resulting `ryzova-wonder-layer-0.0.0-poc.1.tgz` into an existing PWA project with `npm install ./path/to/ryzova-wonder-layer-0.0.0-poc.1.tgz`. Import from `@ryzova/wonder-layer` or the optional `/client`, `/react`, `/vue` paths.
+
+```js
+import {createWonderLayer} from "@ryzova/wonder-layer";
+const wonder=await createWonderLayer({dbName:"my-pwa"});
+const result=await wonder.compute(new Float32Array([1,2,3]));
+console.log(result.backend);
+wonder.close();
+```
+
+**Do not initialize IndexedDB inside server-side rendering.** Use the lazy `createWonderClient` API or framework helpers after hydration. Framework helpers accept the application-provided React/Vue runtime so the SDK does not bundle or duplicate frameworks.
+
+See [Developer integration guide](docs/DEVELOPER_SDK.md), [Release checklist](docs/PHASE5_RELEASE_READINESS.md), and [framework examples](examples/frameworks/).
+
 ## SDK overview
 
 - **Adaptive compute:** real WebGPU WGSL shader, compiled WebAssembly kernel, Web Workers, and JavaScript fallback
