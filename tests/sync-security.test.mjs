@@ -1,6 +1,6 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
-import {validateSyncEndpoint,validateSyncResponse} from "../src/sync-security.js";
+import {validateSyncEndpoint,validateSyncResponse,readBoundedSyncJson} from "../src/sync-security.js";
 
 const origin="https://app.example.test";
 test("local endpoint resolves inside current origin",()=>{
@@ -47,4 +47,27 @@ test("production HTTP origin is rejected; localhost HTTP remains valid for devel
   assert.throws(()=>validateSyncEndpoint("/api/sync",{origin:"http://example.test"}),/HTTPS/);
   assert.equal(validateSyncEndpoint("/api/sync",{origin:"http://localhost:8080"}),"/api/sync");
   assert.equal(validateSyncEndpoint("/api/sync",{origin:"http://127.0.0.1:8765"}),"/api/sync");
+});
+
+test("actual streamed sync JSON is parsed under the byte budget",async()=>{
+  const body=JSON.stringify({applied:[],conflicts:[]});
+  const response=new Response(body,{headers:{"content-type":"application/json"}});
+  assert.deepEqual(await readBoundedSyncJson(response),{applied:[],conflicts:[]});
+});
+test("oversized streaming response is cut off during download and cancelled",async()=>{
+  let cancelled=false;
+  const response={body:new ReadableStream({
+    pull(controller){controller.enqueue(new Uint8Array(100));},
+    cancel(){cancelled=true;}
+  })};
+  await assert.rejects(readBoundedSyncJson(response,{maxBytes:20}),/size limit/);
+  assert.equal(cancelled,true);
+});
+test("malformed UTF-8 in a sync stream fails closed",async()=>{
+  const response=new Response(new Uint8Array([0x7b,0x22,0xff,0x22,0x7d]));
+  await assert.rejects(readBoundedSyncJson(response));
+});
+test("JSON-only test responses are still bounded",async()=>{
+  const response={json:async()=>({big:"a".repeat(500)})};
+  await assert.rejects(readBoundedSyncJson(response,{maxBytes:100}),/size limit/);
 });

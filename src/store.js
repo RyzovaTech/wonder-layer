@@ -1,4 +1,4 @@
-import {validateSyncEndpoint,validateSyncResponse} from "./sync-security.js";
+import {validateSyncEndpoint,validateSyncResponse,readBoundedSyncJson} from "./sync-security.js";
 
 function requestResult(request){
   return new Promise((resolve,reject)=>{
@@ -150,7 +150,7 @@ export async function openWonderStore(name="ryzova-wonder"){
         const length=response.headers?.get?.("content-length");
         if(length!==null && length!==undefined && Number(length)>1_000_000)
           throw new Error("Sync response exceeds size limit");
-        const data=await response.json();
+        const data=await readBoundedSyncJson(response);
         validateSyncResponse(data,operations);
         await store.applyAcknowledgements(data.applied);
         return {applied:data.applied,conflicts:data.conflicts,pending:(await store.pending()).length};

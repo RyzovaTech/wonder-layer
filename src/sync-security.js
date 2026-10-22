@@ -50,3 +50,36 @@ export function validateSyncResponse(data,operations){
   }
   return data;
 }
+
+/**
+ * Enforce body size *while downloading*, not only after JSON.parse.
+ * Content-Length is advisory and can be absent or false.
+ */
+export async function readBoundedSyncJson(response,{maxBytes=1_000_000}={}){
+  if(!Number.isSafeInteger(maxBytes)||maxBytes<1)throw new RangeError("Invalid sync body budget");
+  if(typeof response?.body?.getReader!=="function"){
+    // Contract-test response shims may expose json() only.
+    const value=await response.json();
+    if(new TextEncoder().encode(JSON.stringify(value)).byteLength>maxBytes)
+      throw new Error("Sync response exceeds size limit");
+    return value;
+  }
+  const reader=response.body.getReader();
+  const decoder=new TextDecoder("utf-8",{fatal:true});
+  let body="",bytes=0;
+  try{
+    while(true){
+      const {done,value}=await reader.read();
+      if(done)break;
+      if(!(value instanceof Uint8Array))throw new Error("Malformed sync response stream");
+      bytes+=value.byteLength;
+      if(bytes>maxBytes)throw new Error("Sync response exceeds size limit");
+      body+=decoder.decode(value,{stream:true});
+    }
+    body+=decoder.decode();
+    return JSON.parse(body);
+  }catch(error){
+    await reader.cancel().catch(()=>{});
+    throw error;
+  }finally{reader.releaseLock();}
+}

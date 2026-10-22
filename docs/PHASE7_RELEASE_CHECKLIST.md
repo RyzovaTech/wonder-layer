@@ -6,14 +6,14 @@
 - [x] Restrict SDK sync to same-origin endpoints; same-origin credentials, no-referrer, no-store, redirect error
 - [x] Validate each server acknowledgement and conflict against submitted mutation IDs
 - [x] Reject duplicate, stale/unrelated/malformed sync responses before altering local storage
-- [x] Fail-closed content type and size metadata handling, bounded accepted response
+- [x] Fail-closed content type, streamed response size budget and bounded JSON parsing (not just Content-Length)
 - [x] Preserve offline Service Worker dependency cache when new modules are added
 - [x] Prepare privacy-minimized manual real-device hardware/GPU acceptance lab
 - [x] Prepare automated security contract/regression checks
 
 ## Security requirements *not* implemented or not verified
 
-- [ ] Formal third-party security review and browser threat model (XSS, storage theft, extensions, shared origin).
+- [ ] External independent security review and sign-off of the published threat model in `docs/PHASE7_INDEPENDENT_REVIEW.md`. CodeQL is automated analysis, not a replacement for independent human assessment.
 - [ ] Authenticated multi-tenant production sync **server**. Same-origin URL restriction alone does **not** provide authentication/authorization, CSRF protection, audit logging, rate limiting or tenant isolation.
 - [ ] Strict CSP and security headers configured by the deploying **host application**. SDK cannot impose response headers on host sites.
 - [ ] Formal malicious backup, corrupt IndexedDB and crash-interruption fuzzing on real devices.
