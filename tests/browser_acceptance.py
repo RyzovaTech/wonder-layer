@@ -57,7 +57,12 @@ def run(browser_name="chromium", executable_path=None, profile="desktop", channe
             ctx = browser.launch_persistent_context(user_profile, **launch_args)
             page = ctx.new_page()
             def check(name, fn):
-                detail = fn()
+                try:
+                    detail=fn()
+                except Exception as exc:
+                    report["checks"].append({"name":name,"status":"fail",
+                                             "error":str(exc)[:1500]})
+                    raise
                 check_status="unsupported" if isinstance(detail, dict) and detail.get("state")=="unsupported" else "pass"
                 report["checks"].append({"name": name, "status": check_status, "detail": detail})
             def navigation():
@@ -226,8 +231,29 @@ def run(browser_name="chromium", executable_path=None, profile="desktop", channe
                 page.locator("#geo-test").click()
                 page.get_by_text("Location obtained; reported accuracy: 11 meters.",exact=False).wait_for(timeout=15000)
                 ctx.grant_permissions([],origin=origin)
+                page.reload(wait_until="load")
+                permission_state=page.evaluate("""async () => {
+                    try {return (await navigator.permissions.query({name:"geolocation"})).state}
+                    catch {return "unqueryable"}
+                }""")
+                if permission_state!="denied":
+                    # Browser-managed permission profiles vary (notably managed Edge).
+                    # Treat an unverified deny override as UNSUPPORTED, never as PASS.
+                    return {"state":"unsupported",
+                            "reason":"Browser did not expose deterministic denied permission after override",
+                            "permissionState":permission_state,
+                            "permissionGranted":True,"permissionDenied":False}
                 page.locator("#geo-test").click()
-                page.get_by_text("PERMISSION_DENIED:",exact=False).wait_for(timeout=15000)
+                page.wait_for_function("""() => {
+                    const status=document.querySelector("#hardware-status")?.textContent??"";
+                    return status.startsWith("PERMISSION_DENIED:") ||
+                           status.startsWith("TIMEOUT:") ||
+                           status.startsWith("DEVICE_ERROR:") ||
+                           status.startsWith("Location obtained;");
+                }""",timeout=15000)
+                outcome=page.locator("#hardware-status").inner_text()
+                assert outcome.startswith("PERMISSION_DENIED:"), (
+                    "Denied permission was not classified as PERMISSION_DENIED: "+outcome)
                 return {"state":"verified","permissionGranted":True,"permissionDenied":True,
                         "coordinatesStored":False}
             check("geolocation_permission_granted_and_denied",geolocation_permission_flow)
