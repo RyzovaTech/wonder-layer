@@ -11,8 +11,8 @@ Ryzova Wonder Layer is a framework-independent experimental SDK for giving exist
 Wonder Layer now has a **dependency-free, tree-shakeable ESM distribution** with TypeScript declarations, React and Vue integration adapters and a testable npm package archive. The package is **private / pre-release** until RyzovaTech selects the commercial or open-source license and authorizes publication.
 
 ```sh
-npm test             # run the current SDK and integration suites (after building)
 npm run build        # generates dist with actual WASM and Worker assets
+npm test             # automatically rebuilds, then runs SDK/package tests
 npm pack             # creates a local SDK tarball for testing, NOT a registry publication
 ```
 
