@@ -80,6 +80,7 @@ test("Phase 4 PWA lifecycle, recovery, and cache dependencies are wired",async()
     assert.ok(html.includes('id="'+target+'"'));
   assert.match(app,/pwa\.register/);
   assert.match(app,/recovery\.requestPersistence/);
+  assert.ok(app.includes('Save your current note locally before activating the update.'));
   assert.ok(!sw.includes("await self.skipWaiting()"));
   assert.ok(sw.includes("WONDER_ACTIVATE_UPDATE"));
   for(const path of ["../../src/recovery.js","../../src/reconnect.js","../../src/pwa.js"])
