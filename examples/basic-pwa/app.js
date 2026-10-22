@@ -87,6 +87,18 @@ init().catch(error=>{
 });
 
 
+$("calibrate").addEventListener("click",async()=>{
+  if(!layer)return status("compute-status","SDK unavailable");
+  const input=Float32Array.from({length:Number($("count").value)},(_,i)=>(i%101)/4);
+  status("compute-status","Benchmarking eligible backends on this device…");
+  try{
+    const result=await layer.scheduler.calibrate(input,{samples:2,policy:"throughput"});
+    status("compute-status",JSON.stringify({
+      calibration:result, nextPlan:layer.scheduler.plan(input.length,{policy:"throughput"}),
+      stats:layer.scheduler.stats()
+    },null,2));
+  }catch(error){status("compute-status","Calibration failed: "+error.message);}
+});
 $("hardware-inspect").addEventListener("click",()=>{
   if(!layer)return status("hardware-status","SDK not initialized");
   status("hardware-status",JSON.stringify(layer.hardware.capabilities(),null,2));

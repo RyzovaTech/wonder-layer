@@ -60,10 +60,11 @@ test("Phase 3 SDK is imported by host PWA and offline cached",async()=>{
   const html=read("index.html");
   const app=read("app.js");
   const sw=read("sw.js");
-  for(const id of ["hardware-inspect","camera-test","geo-test","policy","hardware-status"])
+  for(const id of ["hardware-inspect","camera-test","geo-test","policy","calibrate","hardware-status"])
     assert.ok(html.includes('id="'+id+'"'),id);
   assert.match(app,/layer\.hardware\.request/);
   assert.match(app,/layer\.scheduler\.stats/);
+  assert.match(app,/layer\.scheduler\.calibrate/);
   assert.ok(sw.includes("../../src/scheduler.js"));
   assert.ok(sw.includes("../../src/hardware.js"));
   assert.ok(sw.includes("ryzova-wonder-integration-v2"));

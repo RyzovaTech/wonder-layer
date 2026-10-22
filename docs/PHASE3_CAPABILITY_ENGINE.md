@@ -23,7 +23,8 @@ console.log(wonder.scheduler.stats());
 - Individual backend failures are cooled down temporarily; explicit `prefer` forces only that backend.
 - `await wonder.scheduler.inspect({refresh:true})` checks GPU adapter readiness, not execution performance.
 - `AbortSignal` stops before/after backend operations and cancels Worker operations; GPU dispatch/WASM running synchronously cannot be preempted by the JS wrapper.
-- Latency metrics are local, in-memory; do not interpret default heuristics as calibrated benchmarks. End-to-end browser benchmarking is required.
+- `await wonder.scheduler.calibrate(input,{samples:2})` explicitly measures eligible backend end-to-end execution and validates each result. If every planned backend has a verified sample, throughput scheduling can order by its measured latency.
+- Latency metrics are local, in-memory and workload-size-bucketed; calibration is opt-in and can be expensive. It does not automatically request device permissions. Do not interpret one calibration as a cross-device benchmark. End-to-end browser benchmarking is required.
 
 ### Permission-gated hardware
 

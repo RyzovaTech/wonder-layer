@@ -55,7 +55,10 @@ export async function workerTransform(input,options={}){
     if(options.signal?.aborted)return onAbort();
     worker.onmessage=e=>done(resolve,new Float32Array(e.data));
     worker.onerror=e=>done(reject,new Error(e.message||"Worker failed"));
-    worker.postMessage({values:input,gain:options.gain??1.5,bias:options.bias??2});
+    worker.onmessageerror=()=>done(reject,new Error("Worker message could not be decoded"));
+    try{
+      worker.postMessage({values:input,gain:options.gain??1.5,bias:options.bias??2});
+    }catch(error){done(reject,error);}
   });
 }
 export async function gpuTransform(input,options={},env=globalThis){

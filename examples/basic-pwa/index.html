@@ -42,7 +42,7 @@
       <select id="count"><option value="8192">8,192</option><option value="65536">65,536</option><option value="262144">262,144</option></select>
       <label for="policy">Processing priority</label>
       <select id="policy"><option value="throughput">Throughput</option><option value="responsive">UI responsiveness (Worker first)</option></select>
-      <div class="actions"><button id="compute" type="button">Run real compute</button><button type="button" id="inspect">Inspect runtime</button></div>
+      <div class="actions"><button id="compute" type="button">Run real compute</button><button id="calibrate" type="button">Calibrate backends</button><button type="button" id="inspect">Inspect runtime</button></div>
       <pre id="compute-status" aria-live="polite">Not started.</pre>
     </article>
     <article>
