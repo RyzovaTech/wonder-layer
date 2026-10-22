@@ -4,7 +4,7 @@ The SDK remains a private pre-release. **Security hardening is not a third-party
 
 ## Sync transport and trust boundaries
 
-- `store.sync(endpoint)` permits same-origin URLs only. Cross-origin URLs, unsafe schemes, URL credentials, fragments and redirects are blocked. The browser sends same-origin credentials with `no-store` and `no-referrer`.
+- `store.sync(endpoint)` permits same-origin URLs only, requiring HTTPS except local loopback development. Cross-origin URLs, unsafe schemes, URL credentials, fragments and redirects are blocked. The browser sends same-origin credentials with `no-store` and `no-referrer`.
 - Default SDK sync is **not started automatically**. Never call `sync()` or start foreground/reconnect sync unless an authorized host server has been configured.
 - The server must implement authentication, per-record ownership/tenant authorization, CSRF defenses where cookies are used, rate limits, input validation and idempotent operation IDs. **Same-origin is not authentication.**
 - Untrusted response acknowledgements and conflicts must refer to operations sent in the current batch; duplicate, unrelated and malformed results are rejected before local changes. Browser failure and server failures retain queued local work for retry.

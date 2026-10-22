@@ -20,6 +20,10 @@ export function validateSyncEndpoint(endpoint,{origin=globalThis.location?.origi
   if(url.protocol!=="https:"&&url.protocol!=="http:")
     throw new Error("Unsafe sync endpoint scheme");
   if(url.origin!==origin)throw new Error("Cross-origin sync is forbidden; use an authenticated same-origin server");
+  // Browser localhost is an accepted development origin; do not transmit
+  // private local data over plaintext network HTTP for deployed sites.
+  if(url.protocol==="http:" && !["localhost","127.0.0.1","[::1]"].includes(url.hostname))
+    throw new Error("Sync requires HTTPS outside loopback development");
   if(url.username||url.password||url.hash)throw new Error("Credentials or URL fragments not allowed in sync endpoint");
   return url.pathname+url.search;
 }

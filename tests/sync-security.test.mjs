@@ -42,3 +42,9 @@ test("rejects unsolicited, stale, duplicated or overlapping acknowledgements",()
   for(const response of bad)
     assert.throws(()=>validateSyncResponse(response,ops),undefined,JSON.stringify(response));
 });
+
+test("production HTTP origin is rejected; localhost HTTP remains valid for development",()=>{
+  assert.throws(()=>validateSyncEndpoint("/api/sync",{origin:"http://example.test"}),/HTTPS/);
+  assert.equal(validateSyncEndpoint("/api/sync",{origin:"http://localhost:8080"}),"/api/sync");
+  assert.equal(validateSyncEndpoint("/api/sync",{origin:"http://127.0.0.1:8765"}),"/api/sync");
+});
