@@ -3,6 +3,7 @@ import argparse
 import contextlib
 import http.server
 import json
+import hashlib
 import tempfile
 import threading
 import traceback
@@ -33,7 +34,7 @@ def local_server():
 
 def run(browser_name="chromium", executable_path=None):
     from playwright.sync_api import sync_playwright
-    report = {"schema": "wonder-phase2-browser-v1", "date": datetime.now(timezone.utc).isoformat(),
+    report = {"schema": "wonder-phase4-browser-v1", "date": datetime.now(timezone.utc).isoformat(),
               "browser": browser_name, "checks": [], "status": "not-run"}
     ctx = None
     try:
@@ -63,6 +64,37 @@ def run(browser_name="chromium", executable_path=None):
                 page.get_by_text("Saved on this device.", exact=False).wait_for(timeout=12000)
                 return "saved locally"
             check("indexeddb_write", save)
+            def recoverable_backup():
+                with page.expect_download(timeout=12000) as pending:
+                    page.locator("#export").click()
+                with tempfile.TemporaryDirectory() as tmp:
+                    target=Path(tmp)/"backup.json"
+                    pending.value.save_as(target)
+                    backup=json.loads(target.read_text(encoding="utf8"))
+                assert backup["format"]=="ryzova-wonder-recovery"
+                assert backup["version"]==2 and backup["algorithm"]=="SHA-256"
+                normalized=sorted(backup["records"],key=lambda r:r["id"])
+                payload=json.dumps(normalized,ensure_ascii=False,separators=(",",":"))
+                checksum=hashlib.sha256(payload.encode("utf8")).hexdigest()
+                assert checksum==backup["checksum"], "backup checksum mismatch"
+                assert any(r["id"]=="local-note" for r in backup["records"])
+                return {"records":len(backup["records"]),"integrity":"sha256"}
+            check("version2_backup_checksum",recoverable_backup)
+            def unsaved_update_guard():
+                page.locator("#note").fill("UNSAVED user typing")
+                page.locator("#apply-update").click()
+                page.get_by_text("Save your current note locally before activating the update.",exact=False).wait_for(timeout=10000)
+                page.locator("#load").click()
+                page.wait_for_function("() => document.querySelector('#note').value==='wonder-phase2-offline-proof'",timeout=10000)
+                return "unsaved in-memory edits cannot trigger worker update"
+            check("unsaved_changes_block_activation",unsaved_update_guard)
+            def storage_health():
+                page.locator("#storage-check").click()
+                page.wait_for_function("""() => document.querySelector("#storage-status").textContent.includes('"evictionPossible"')""",timeout=12000)
+                health=json.loads(page.locator("#storage-status").inner_text())
+                assert "evictionPossible" in health
+                return {"quota":health.get("quota"),"persisted":health.get("persisted")}
+            check("storage_health_report",storage_health)
             def compute():
                 page.locator("#count").select_option("65536")
                 page.locator("#compute").click()
@@ -120,7 +152,7 @@ def run(browser_name="chromium", executable_path=None):
 if __name__=="__main__":
     parser=argparse.ArgumentParser()
     parser.add_argument("--browser", choices=("chromium","firefox","webkit"), default="chromium")
-    parser.add_argument("--output", default="results/phase2-browser-acceptance.json")
+    parser.add_argument("--output", default="results/phase4-browser-acceptance.json")
     parser.add_argument("--executable-path", default=None, help="Optional existing browser binary; OS policies still apply")
     args=parser.parse_args()
     report=run(args.browser,args.executable_path)
