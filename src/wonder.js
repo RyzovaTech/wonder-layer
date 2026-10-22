@@ -1,5 +1,7 @@
 import {detectCapabilities,inspectCapabilities} from "./capabilities.js";
 import {adaptiveCompute} from "./compute.js";
+import {createAdaptiveEngine} from "./scheduler.js";
+import {createHardwareBridge} from "./hardware.js";
 import {openWonderStore} from "./store.js";
 import {createForegroundSync} from "./lifecycle.js";
 import {exportBackup,parseBackup} from "./backup.js";
@@ -7,12 +9,16 @@ import {readPrivateFile,writePrivateFile,getStorageEstimate} from "./files.js";
 
 export async function createWonderLayer({dbName="ryzova-wonder",endpoint="/api/sync"}={}){
   const store=await openWonderStore(dbName);
+  const engine=createAdaptiveEngine();
+  const hardware=createHardwareBridge();
   async function sync(){return store.sync(endpoint);}
   return {
     runtime:"pure-pwa",
     capabilities:()=>detectCapabilities(),
     inspect:()=>inspectCapabilities(),
-    compute:(input,options)=>adaptiveCompute(input,options),
+    compute:(input,options)=>engine.run(input,options),
+    scheduler:engine,
+    hardware,
     store,sync,
     foregroundSync:options=>createForegroundSync(sync,options),
     files:{read:readPrivateFile,write:writePrivateFile,estimate:getStorageEstimate},
@@ -34,3 +40,5 @@ export {detectCapabilities,inspectCapabilities} from "./capabilities.js";
 export {adaptiveCompute,jsTransform,wasmTransform,gpuTransform,workerTransform,selectComputeOrder} from "./compute.js";
 export {parseBackup,exportBackup} from "./backup.js";
 
+export {createAdaptiveEngine} from "./scheduler.js";
+export {createHardwareBridge,WonderHardwareError} from "./hardware.js";
