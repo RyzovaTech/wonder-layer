@@ -30,7 +30,12 @@ export async function createWonderLayer({dbName="ryzova-wonder",endpoint="/api/s
     foregroundSync:options=>createForegroundSync(sync,options),
     files:{read:readPrivateFile,write:writePrivateFile,estimate:getStorageEstimate},
     async backup(){return recovery.export();},
-    async restore(payload,options){return recovery.restore(payload,options);},
+    async restore(payload,options){
+      // Backward-compatible SDK return shape; integrity metadata is available
+      // through wonder.recovery.restore(...) for callers that need it.
+      const {imported,skipped}=await recovery.restore(payload,options);
+      return {imported,skipped};
+    },
     async requestPersistentStorage(){return !!(await globalThis.navigator?.storage?.persist?.());},
     close:()=>{pwa.close();store.close();}
   };
