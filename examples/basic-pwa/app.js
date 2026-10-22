@@ -143,8 +143,15 @@ $("check-update").addEventListener("click",async()=>{
     status("pwa-status",JSON.stringify(info));
   }catch(error){status("pwa-status","Update check failed: "+error.message);}
 });
-$("apply-update").addEventListener("click",()=>{
-  // The host app must preserve its edits before activating a new version.
-  status("pwa-status",pwa.activateWaiting()?
-    "Update activation requested. Existing tabs may need reload.":"No waiting service worker.");
+$("apply-update").addEventListener("click",async()=>{
+  // Updating the app shell must not silently discard unsaved form content.
+  if(!layer)return status("pwa-status","Offline database is not ready.");
+  try{
+    const saved=(await layer.store.listRecords()).find(record=>record.id==="local-note");
+    if($("note").value!==(saved?.content??"")){
+      return status("pwa-status","Save your current note locally before activating the update.");
+    }
+    status("pwa-status",pwa.activateWaiting()?
+      "Update activation requested. Existing tabs may need reload.":"No waiting service worker.");
+  }catch(error){status("pwa-status","Update blocked: "+error.message);}
 });
