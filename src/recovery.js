@@ -14,7 +14,8 @@ function normalize(records){
     seen.add(value.id);
     result.push({id:value.id,content:value.content});
   }
-  return result.sort((a,b)=>a.id.localeCompare(b.id,"en"));
+  // Code-point order is deterministic across browser engines and ICU versions.
+  return result.sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
 }
 function secureCrypto(env){
   const crypto=env.crypto;
