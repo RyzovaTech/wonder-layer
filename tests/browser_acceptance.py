@@ -32,10 +32,11 @@ def local_server():
         srv.server_close()
         thread.join(timeout=3)
 
-def run(browser_name="chromium", executable_path=None, profile="desktop"):
+def run(browser_name="chromium", executable_path=None, profile="desktop", channel=None):
     from playwright.sync_api import sync_playwright
     report = {"schema": "wonder-phase6-browser-v3", "date": datetime.now(timezone.utc).isoformat(),
-              "browser": browser_name, "profile": profile, "checks": [], "status": "not-run"}
+              "browser": browser_name, "profile": profile, "channel": channel,
+              "checks": [], "status": "not-run"}
     ctx = None
     try:
         with local_server() as url, tempfile.TemporaryDirectory() as user_profile, sync_playwright() as p:
@@ -47,6 +48,9 @@ def run(browser_name="chromium", executable_path=None, profile="desktop"):
             browser = getattr(p, browser_name)
             launch_args={"headless":True,"service_workers":"allow","accept_downloads":True}
             if executable_path: launch_args["executable_path"]=executable_path
+            if channel:
+                if browser_name!="chromium": raise ValueError("Browser channel is only supported for Chromium")
+                launch_args["channel"]=channel
             if profile_mode=="mobile":
                 launch_args.update(is_mobile=True,has_touch=True,
                     viewport={"width":390,"height":844},device_scale_factor=3)
@@ -252,6 +256,7 @@ def run(browser_name="chromium", executable_path=None, profile="desktop"):
                 ctx.close()
                 restart_args={"headless":True,"offline":True,"service_workers":"allow"}
                 if executable_path: restart_args["executable_path"]=executable_path
+                if channel: restart_args["channel"]=channel
                 if profile_mode=="mobile":
                     restart_args.update(is_mobile=True,has_touch=True,
                         viewport={"width":390,"height":844},device_scale_factor=3)
@@ -281,8 +286,9 @@ if __name__=="__main__":
                         help="Mobile emulation is available for Chromium and WebKit only")
     parser.add_argument("--output", default="results/phase6-browser-acceptance.json")
     parser.add_argument("--executable-path", default=None, help="Optional existing browser binary; OS policies still apply")
+    parser.add_argument("--channel",default=None,help="Optional Chromium browser channel, e.g. msedge")
     args=parser.parse_args()
-    report=run(args.browser,args.executable_path,args.profile)
+    report=run(args.browser,args.executable_path,args.profile,args.channel)
     output=Path(args.output);output.parent.mkdir(parents=True,exist_ok=True)
     output.write_text(json.dumps(report,indent=2)+"\n",encoding="utf8")
     print(json.dumps({"status":report["status"],"checks":report["checks"],"error":report.get("error")},indent=2))
