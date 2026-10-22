@@ -97,12 +97,13 @@ void client;void createReactWonderBindings;void createVueWonderBindings;
 
   result.strictTypes="pass";
   // Test actual built consumer applications inside a real browser, not only Vite output.
-  command(join(project,"node_modules",".bin","playwright"),["install","--with-deps","chromium"],project);
+  command(join(project,"node_modules",".bin","playwright"),["install","--with-deps","chromium","firefox","webkit"],project);
   const localRequire=createRequire(join(project,"package.json"));
-  const {chromium}=localRequire("playwright");
-  const browser=await chromium.launch({headless:true});
-  try{
-    for(const kind of ["vanilla","react","vue"]){
+  const {chromium,firefox,webkit}=localRequire("playwright");
+  for(const [browserName,browserType] of Object.entries({chromium,firefox,webkit})){
+    const browser=await browserType.launch({headless:true});
+    try{
+      for(const kind of ["vanilla","react","vue"]){
       const publicRoot=join(project,"built-"+kind);
       const server=createServer(async(req,res)=>{
         try{
@@ -142,13 +143,16 @@ void client;void createReactWonderBindings;void createVueWonderBindings;
         if(kind==="vanilla")await page.waitForFunction(()=>document.querySelector("#note")?.value==="wonder-vanilla-persisted",{timeout:20000});
         else await page.waitForFunction((name)=>document.querySelector("textarea")?.value===("wonder-"+name+"-persisted"),kind,{timeout:20000});
         if(errors.length)throw Error(kind+" runtime page errors: "+errors.join("; "));
-        result.browserRuntime.push({framework:kind,status:"pass",reloadPersistence:true,userAgent:await page.evaluate(()=>navigator.userAgent)});
+        result.browserRuntime.push({browser:browserName,framework:kind,status:"pass",reloadPersistence:true,
+          userAgent:await page.evaluate(()=>navigator.userAgent)});
       }finally{
         await context.close();
         await new Promise(resolve=>server.close(resolve));
       }
     }
-  }finally{await browser.close();}
+    }finally{await browser.close();}
+  }
+  if(result.browserRuntime.length!==9)throw Error("Expected nine cross-browser consumer runtime validations");
   result.status="pass";
   console.log("Phase 6 external tarball consumer checks:",JSON.stringify(result,null,2));
 }catch(error){
