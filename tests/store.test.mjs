@@ -152,3 +152,28 @@ test("backup validation and default non-overwriting restore",withIndexedDB(async
     assert.equal((await layer.store.listRecords()).length,2);
   }finally{layer.close();}
 }));
+
+test("invalid mixed acknowledgements are rejected before any changes",withIndexedDB(async()=>{
+  const db=await openWonderStore("untrusted-acks");
+  await db.save("note","persisted");
+  const op=(await db.pending())[0];
+  await assert.rejects(db.applyAcknowledgements([
+    {record_id:"note",op_id:op.op_id,revision:1},
+    {record_id:"other",op_id:"bad",revision:-1}
+  ]),/Invalid server acknowledgement/);
+  assert.equal((await db.pending()).length,1);
+  assert.equal((await db.listRecords())[0].dirty,true);
+  db.close();
+}));
+test("older server revision cannot roll local record backward",withIndexedDB(async()=>{
+  const db=await openWonderStore("revision-floor");
+  await db.save("note","first");
+  const op=(await db.pending())[0];
+  await db.applyAcknowledgements([{record_id:"note",op_id:op.op_id,revision:5}]);
+  await db.save("note","new");
+  const later=(await db.pending())[0];
+  await db.applyAcknowledgements([{record_id:"note",op_id:later.op_id,revision:3}]);
+  assert.equal((await db.listRecords())[0].revision,5);
+  assert.equal((await db.pending()).length,1);
+  db.close();
+}));

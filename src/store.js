@@ -50,6 +50,7 @@ export async function openWonderStore(name="ryzova-wonder"){
     async resolveConflict(id,mode,remote){
       if(!validId(id)||!validContent(remote?.content)||!Number.isSafeInteger(remote?.revision)||remote.revision<0)
         throw new Error("Invalid conflict details");
+      if(mode!=="remote" && mode!=="local")throw new Error("Unknown conflict strategy");
       const tx=db.transaction(["records","outbox"],"readwrite"),done=transactionDone(tx);
       const records=tx.objectStore("records"),outbox=tx.objectStore("outbox");
       if(mode==="remote"){
@@ -57,21 +58,26 @@ export async function openWonderStore(name="ryzova-wonder"){
         outbox.delete(id);
       }else if(mode==="local"){
         const current=await requestResult(records.get(id));
-        if(!current){tx.abort();throw new Error("Record absent");}
+        if(!current){tx.abort();await done.catch(()=>{});throw new Error("Record absent");}
         records.put({...current,revision:remote.revision,dirty:true});
         outbox.put({record_id:id,content:current.content,expected_revision:remote.revision,op_id:globalThis.crypto.randomUUID()});
-      }else{tx.abort();throw new Error("Unknown conflict strategy");}
+      }
       await done;
     },
     async applyAcknowledgements(applied){
+      // Reject any malformed server batch before changing local records.
+      if(!Array.isArray(applied))throw new Error("Invalid server acknowledgement list");
       for(const ack of applied){
-        if(!validId(ack?.record_id)||typeof ack?.op_id!=="string"||!Number.isSafeInteger(ack?.revision))
+        if(!validId(ack?.record_id)||typeof ack?.op_id!=="string"||!ack.op_id||
+          !Number.isSafeInteger(ack?.revision)||ack.revision<0)
           throw new Error("Invalid server acknowledgement");
+      }
+      for(const ack of applied){
         const tx=db.transaction(["records","outbox"],"readwrite"),done=transactionDone(tx);
         const records=tx.objectStore("records"),outbox=tx.objectStore("outbox");
         const queued=await requestResult(outbox.get(ack.record_id));
         const current=await requestResult(records.get(ack.record_id));
-        if(current){
+        if(current && ack.revision>=current.revision){
           if(queued?.op_id===ack.op_id){
             outbox.delete(ack.record_id);records.put({...current,revision:ack.revision,dirty:false});
           }else if(queued){
