@@ -9,4 +9,6 @@ __pycache__/
 .env
 .env.*
 !.env.example
+results/
+*.tgz
 

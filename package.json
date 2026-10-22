@@ -3,15 +3,43 @@
   "version": "0.0.0-poc.1",
   "private": true,
   "type": "module",
-  "description": "Pure-PWA adaptive capabilities SDK engineering foundation",
+  "description": "Pure PWA native-like capability SDK with adaptive compute, offline recovery and browser hardware APIs",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "SECURITY.md"
+  ],
+  "main": "./dist/wonder.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/wonder.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/wonder.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "default": "./dist/react.js"
+    },
+    "./vue": {
+      "types": "./dist/vue.d.ts",
+      "default": "./dist/vue.js"
+    },
+    "./package.json": "./package.json"
   },
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test tests/*.test.mjs",
+    "build": "node tools/build.mjs",
+    "prepack": "npm run build",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "test:sdk": "npm run build && node --test tests/sdk-client.test.mjs tests/framework-adapters.test.mjs tests/distribution.test.mjs",
+    "pack:check": "npm pack --dry-run",
     "serve": "python3 -m http.server 8765",
     "test:browser": "python3 tests/browser_acceptance.py --browser chromium",
     "bench:node": "node tools/compute_benchmark.mjs",

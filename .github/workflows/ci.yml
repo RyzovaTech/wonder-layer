@@ -29,5 +29,9 @@ jobs:
       - name: Validate JavaScript syntax
         run: |
           for file in src/*.js examples/basic-pwa/*.js; do node --check "$file"; done
-      - name: Execute SDK and integration checks
+      - name: Build distributable SDK and browser assets
+        run: npm run build
+      - name: Execute SDK, integrations and distribution checks
         run: npm test
+      - name: Check archive contents and bundled assets
+        run: npm pack --dry-run --ignore-scripts
