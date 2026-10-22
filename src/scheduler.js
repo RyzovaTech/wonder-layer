@@ -59,7 +59,9 @@ export function createAdaptiveEngine({
       if(!ENGINES.includes(prefer))throw new Error("Invalid backend preference");
       return [prefer];
     }
-    const caps=capabilities??inspected?.available??detectCapabilities(env);
+    const caps={...(capabilities??inspected?.available??detectCapabilities(env))};
+    if(inspected?.checks?.webGPU && inspected.checks.webGPU.state!=="adapter-ready")
+      caps.webGPU=false;
     const ordered=selectComputeOrder(length,caps,"auto");
     if(length>0&&length>=thresholds.gpu&&caps.webGPU&&!ordered.includes("gpu"))ordered.unshift("gpu");
     if(length>=thresholds.wasm&&caps.webAssembly&&!ordered.includes("wasm"))ordered.splice(ordered.indexOf("js"),0,"wasm");
@@ -87,7 +89,7 @@ export function createAdaptiveEngine({
       const previous=metrics.get(key)??{attempts:0,successes:0,failures:0,lastMs:null,emaMs:null};
       try{
         if(typeof workers[backend]!=="function")throw new Error("Backend implementation unavailable");
-        const result=await workers[backend](input,{gain:options.gain??1.5,bias:options.bias??2});
+        const result=await workers[backend](input,{gain:options.gain??1.5,bias:options.bias??2,signal:options.signal});
         aborted(options.signal);
         validateOutput(input,result,{gain:options.gain??1.5,bias:options.bias??2});
         const durationMs=Math.max(0,clock()-since);
