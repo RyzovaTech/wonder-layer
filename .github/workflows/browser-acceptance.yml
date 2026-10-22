@@ -32,3 +32,32 @@ jobs:
           name: wonder-phase6-chromium-results
           path: results/chromium-acceptance.json
           if-no-files-found: warn
+
+  cross-browser-lab:
+    name: ${{ matrix.browser }} desktop PWA acceptance (experimental)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Playwright browser and dependencies
+        run: |
+          python -m pip install "playwright>=1.56,<2"
+          python -m playwright install --with-deps ${{ matrix.browser }}
+      - name: Real browser lab (document unsupported features)
+        run: |
+          python tests/browser_acceptance.py --browser ${{ matrix.browser }} --output results/${{ matrix.browser }}-acceptance.json
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wonder-phase6-${{ matrix.browser }}-results
+          path: results/${{ matrix.browser }}-acceptance.json
+          if-no-files-found: warn
