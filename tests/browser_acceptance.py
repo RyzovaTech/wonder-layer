@@ -181,6 +181,23 @@ def run(browser_name="chromium", executable_path=None):
                   return {manifestValid:true,icons:checked};
                 }""")
             check("manifest_and_install_icon_assets",pwa_manifest_assets)
+            def geolocation_permission_flow():
+                if browser_name!="chromium":
+                    return {"state":"unsupported","reason":"Only Chromium geolocation override validated in this CI"}
+                if not page.evaluate("!!navigator.geolocation"):
+                    return {"state":"unsupported","reason":"Geolocation API not exposed"}
+                origin=url.split("/examples/")[0]
+                ctx.set_geolocation({"latitude":0,"longitude":0,"accuracy":11})
+                ctx.grant_permissions(["geolocation"],origin=origin)
+                page.locator("#geo-test").click()
+                page.get_by_text("Location obtained; reported accuracy: 11 meters.",exact=False).wait_for(timeout=15000)
+                ctx.grant_permissions([],origin=origin)
+                page.locator("#geo-test").click()
+                page.get_by_text("PERMISSION_DENIED:",exact=False).wait_for(timeout=15000)
+                return {"state":"verified","permissionGranted":True,"permissionDenied":True,
+                        "coordinatesStored":False}
+            check("geolocation_permission_granted_and_denied",geolocation_permission_flow)
+
 
             def opfs():
                 return page.evaluate("""async () => {

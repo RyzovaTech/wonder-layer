@@ -66,3 +66,13 @@ test("unknown devices are rejected without probing permissions",async()=>{
   await assert.rejects(bridge.request("native-shell"),e=>e.code==="UNKNOWN_DEVICE");
 });
 
+
+test("GeolocationPositionError numeric codes classify denied and timeout accurately",async()=>{
+  for(const [code,expected] of [[1,"PERMISSION_DENIED"],[3,"TIMEOUT"]]){
+    const bridge=createHardwareBridge({env:{isSecureContext:true,navigator:{
+      geolocation:{getCurrentPosition(ok,bad){bad({code,message:"Browser geolocation error"});}}
+    }}});
+    await assert.rejects(bridge.request("geolocation"),error=>
+      error instanceof WonderHardwareError && error.code===expected && error.device==="geolocation");
+  }
+});
