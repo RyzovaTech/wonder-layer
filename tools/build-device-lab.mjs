@@ -4,7 +4,7 @@
  * No environment variables, private files, reports or npm tarballs are copied.
  */
 import {cp,mkdir,rm,readdir,stat} from "node:fs/promises";
-import {join,resolve} from "node:path";
+import {resolve,relative,isAbsolute,sep} from "node:path";
 import {fileURLToPath} from "node:url";
 const root=fileURLToPath(new URL("../",import.meta.url));
 const target=resolve(root,"public");
@@ -17,13 +17,19 @@ const inputs=[
   "examples/basic-pwa/icons/icon-192.png",
   "examples/basic-pwa/icons/icon-512.png"
 ];
+// Native path.relative avoids POSIX-only slash checks that fail on Windows paths.
+export function isStrictSubpath(parent,child,pathApi={relative,isAbsolute,sep}){
+  const rel=pathApi.relative(parent,child);
+  return rel!==""&&rel!==".."&&!rel.startsWith(".."+pathApi.sep)&&
+    !pathApi.isAbsolute(rel);
+}
 export async function buildDeviceLab({sourceRoot=root,targetRoot=target}={}){
   // fileURLToPath(new URL("../", import.meta.url)) ends in a slash;
   // canonicalize before checking strict output containment.
   sourceRoot=resolve(sourceRoot);
   targetRoot=resolve(targetRoot);
   // Validate destination BEFORE touching source files or preparing output.
-  if(targetRoot===sourceRoot||!targetRoot.startsWith(sourceRoot+"/"))
+  if(!isStrictSubpath(sourceRoot,targetRoot))
     throw Error("Device lab output must be isolated under repository");
   const allowed=[...inputs];
   const sources=await readdir(resolve(sourceRoot,"src"),{withFileTypes:true});
@@ -37,7 +43,7 @@ export async function buildDeviceLab({sourceRoot=root,targetRoot=target}={}){
   let bytes=0;
   for(const rel of allowed){
     const from=resolve(sourceRoot,rel),to=resolve(targetRoot,rel);
-    if(!from.startsWith(sourceRoot+"/")||!to.startsWith(targetRoot+"/"))
+    if(!isStrictSubpath(sourceRoot,from)||!isStrictSubpath(targetRoot,to))
       throw Error("Unsafe deployment asset path");
     await mkdir(resolve(to,".."),{recursive:true});
     await cp(from,to);
