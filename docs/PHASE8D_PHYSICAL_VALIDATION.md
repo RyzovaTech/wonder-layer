@@ -73,6 +73,10 @@ Node regression tests protect the v2 JSON schema, negative cases, spoofed fields
 
 Those automated tests do **not** establish physical device provenance, actual camera/BLE/USB access or independent reviewer signature.
 
+## Authorized tester intake and human review
+
+The [execution intake guide](PHASE8D_EXECUTION_INTAKE.md) provides the real-device Android Chrome / iPhone Safari acceptance procedure and the [blank restricted attestation form](PHASE8D_ATTESTATION_TEMPLATE.md). The local `npm run evidence:matrix` command prints a **NOT TESTED** default matrix, or **SELF_REPORTED_ONLY** counts if local validated JSON files are supplied. Neither status certifies physical devices.
+
 ## Outstanding release conditions
 
 GitHub `main` branch protection is still pending [#21](https://github.com/RyzovaTech/wonder-layer/issues/21), latest-head Linux CI [#6](https://github.com/RyzovaTech/wonder-layer/issues/6), signed independent security [#17](https://github.com/RyzovaTech/wonder-layer/issues/17), physical devices/license approval [#18](https://github.com/RyzovaTech/wonder-layer/issues/18) and overall release tracker [#19](https://github.com/RyzovaTech/wonder-layer/issues/19).
