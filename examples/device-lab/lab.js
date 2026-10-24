@@ -1,4 +1,4 @@
-import {createHardwareBridge,createAdaptiveEngine} from "../../src/wonder.js";
+import {createHardwareBridge,createAdaptiveEngine,createWonderLayer} from "../../src/wonder.js";
 const byId=id=>document.getElementById(id);
 const bridge=createHardwareBridge();
 const engine=createAdaptiveEngine();
@@ -73,6 +73,45 @@ byId("tests").addEventListener("click",event=>{
   display("Requesting "+kind+" — browser permission/chooser may appear.");
   void runTest(kind).finally(()=>{button.disabled=false;});
 });
+
+const OFFLINE_PROOF_KEY="wonder-private-beta-offline-test";
+const OFFLINE_PROOF_VALUE="wonder-synthetic-only";
+async function withLabStorage(operation){
+  const wonder=await createWonderLayer({dbName:"wonder-device-lab-synthetic-v1"});
+  try{return await operation(wonder.store);}finally{wonder.close();}
+}
+byId("save-synthetic").addEventListener("click",async()=>{
+  const button=byId("save-synthetic");
+  button.disabled=true;
+  try{
+    await withLabStorage(store=>store.save(OFFLINE_PROOF_KEY,OFFLINE_PROOF_VALUE));
+    byId("offline-status").textContent="Saved synthetic value locally. Disconnect from the internet, reload, then click Read.";
+  }catch{
+    byId("offline-status").textContent="Synthetic local save failed; do not mark offline testing passed.";
+  }finally{button.disabled=false;}
+});
+byId("read-synthetic").addEventListener("click",async()=>{
+  const button=byId("read-synthetic");
+  button.disabled=true;
+  try{
+    const records=await withLabStorage(store=>store.listRecords());
+    const found=records.find(record=>record.id===OFFLINE_PROOF_KEY ||
+        record.record_id===OFFLINE_PROOF_KEY);
+    byId("offline-status").textContent=found?.content===OFFLINE_PROOF_VALUE?
+       "PASS: synthetic value recovered from local IndexedDB. Verify this page was offline when tested.":
+       "FAIL: synthetic value not found locally.";
+  }catch{
+    byId("offline-status").textContent="FAIL: unable to read synthetic local value.";
+  }finally{button.disabled=false;}
+});
+// Auto-registering a Service Worker never requests hardware permissions.
+// An isolated scope prevents interference with the existing basic-PWA demo.
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("./sw.js",{scope:"./"}).catch(()=>{
+    byId("offline-status").textContent="Offline cache registration failed; HTTPS/localhost is required.";
+  });
+}
+
 byId("download").addEventListener("click",()=>{
   const report={
     format:"ryzova-device-acceptance-v1",
