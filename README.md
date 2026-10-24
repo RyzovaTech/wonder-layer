@@ -24,6 +24,19 @@ npm run size:check  # rebuild + inspect actual uncompressed SDK dist assets
 
 The size budget is an internal engineering guardrail, **not a minified/browser-delivered bundle size or speed claim**. See [Phase 8B SDK quality and experimental API policy](docs/PHASE8B_SDK_PRODUCT_QUALITY.md). All release restrictions and physical-device review gates remain in force.
 
+## Phase 8C — Developer site and live examples
+
+A **developer-facing, authentication-protected engineering preview** is staged under `/examples/developer-site/` when the matching commit is deployed. The site loads capability claims from [the Phase 8A contract](docs/product/phase8a-capabilities.json), provides user-click-only browser-local compute and IndexedDB demos, and has copyable Vanilla/React/Vue examples.
+
+To view from an authorized local checkout:
+
+```sh
+python3 -m http.server 8765
+# Navigate to http://127.0.0.1:8765/examples/developer-site/
+```
+
+See [Phase 8C implementation, privacy and acceptance gates](docs/PHASE8C_DEVELOPER_SITE.md). The website is **not** a public commercial launch or evidence of real physical-device certification.
+
 ## Private beta readiness (controlled preview only)
 
 Private beta **engineering preparations**, not a public package publication or production-security certification: [readiness plan](docs/PRIVATE_BETA_RC_PLAN.md), [independent reviewer/device sign-off template](docs/PRIVATE_BETA_REVIEW_TEMPLATE.md), and [the on-device test lab](examples/device-lab/).
