@@ -6,6 +6,14 @@ Ryzova Wonder Layer is a framework-independent experimental SDK for giving exist
 
 > **Engineering beta, not a production release.** Automated desktop/browser acceptance has been verified on Chromium, Firefox, WebKit, Windows Edge and macOS WebKit. Real physical Android/iOS devices and WebGPU hardware execution are not yet verified. A browser SDK cannot bypass device permissions, guarantee indefinite background execution, or silently install applications.
 
+## Phase 8A — Developer product definition
+
+**Positioning:** Wonder Layer is a Pure-PWA capability SDK for developers building offline-resilient, device-aware browser applications. Its initial focus is **developers of existing local-first PWAs**; the value hypothesis is less repeated work integrating storage/recovery, adaptive compute and permission-gated hardware APIs, not unrestricted native access.
+
+- [Phase 8A product definition, personas, non-goals and evaluation plan](docs/PHASE8A_PRODUCT_DEFINITION.md)
+- [Machine-readable capability/claim matrix](docs/product/phase8a-capabilities.json) — checks guard advertised package entrypoints, declared SDK roots and release claims.
+- **No published commercial offer:** license, pricing, physical-device validation, independent security review and npm publication authorization remain open. No comparative performance or developer-time-savings figures have been established.
+
 ## Private beta readiness (controlled preview only)
 
 Private beta **engineering preparations**, not a public package publication or production-security certification: [readiness plan](docs/PRIVATE_BETA_RC_PLAN.md), [independent reviewer/device sign-off template](docs/PRIVATE_BETA_REVIEW_TEMPLATE.md), and [the on-device test lab](examples/device-lab/).
