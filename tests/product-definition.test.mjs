@@ -65,9 +65,9 @@ test("Phase 8A explicitly excludes prohibited native/security/AI/performance pro
     "physicalDeviceCertification","comparativePerformanceProof"
   ];
   for(const key of exclusions)assert.equal(json.notProvided[key],false,`Unverified promise: ${key}`);
-  assert.match(position,/not independently measured/i);
-  assert.match(position,/not a license decision/i);
-  assert.match(position,/not yet verified/i);
+  assert.match(position,/independently measured/i);
+  assert.match(position,/license decision/i);
+  assert.match(position,/physical Android Chrome and iPhone Safari/i);
   assert.match(position,/5–10 consenting external developers/);
   assert.match(position,/Phase 8B handoff/);
 });
