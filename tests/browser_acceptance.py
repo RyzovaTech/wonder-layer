@@ -279,6 +279,19 @@ def run(browser_name="chromium", executable_path=None, profile="desktop", channe
                     lab.wait_for_function("""() => document.querySelector("#context")?.textContent.includes("Secure browser context")""",
                                           timeout=10000)
                     assert "Nothing requested" in lab.locator("#status").inner_text()
+
+                    assert lab.locator("#check-sw-control").count()==1
+                    assert lab.locator("#offline-reload-result").input_value()=="not-tested"
+                    assert lab.locator("#cold-restart-result").input_value()=="not-tested"
+                    assert lab.locator("#network-offline-confirmed").is_checked() is False
+                    # Invalid manual claims must be blocked before evidence download.
+                    lab.locator("#os").select_option(label="macOS")
+                    lab.locator("#browser").select_option(label="Firefox")
+                    lab.locator("#offline-reload-result").select_option("observed-pass")
+                    lab.locator("#download").click()
+                    assert "Confirm offline networking" in lab.locator("#status").inner_text()
+                    lab.locator("#offline-reload-result").select_option("not-tested")
+
                     return {"deviceLabLoaded":True,"permissionRequestedWithoutClick":False}
                 finally:
                     lab.close()
