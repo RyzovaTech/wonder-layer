@@ -14,6 +14,10 @@ const inputs=[
   "examples/device-lab/styles.css",
   "examples/device-lab/sw.js",
   "examples/device-lab/manifest.webmanifest",
+  "examples/developer-site/index.html",
+  "examples/developer-site/styles.css",
+  "examples/developer-site/site.js",
+  "docs/product/phase8a-capabilities.json",
   "examples/basic-pwa/icons/icon-192.png",
   "examples/basic-pwa/icons/icon-512.png"
 ];

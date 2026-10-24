@@ -10,6 +10,8 @@ test("static bundle exports only PWA and browser SDK assets",async()=>{
     "examples/device-lab/index.html","examples/device-lab/lab.js",
     "examples/device-lab/styles.css","examples/device-lab/sw.js",
     "examples/device-lab/manifest.webmanifest",
+    "examples/developer-site/index.html","examples/developer-site/styles.css",
+    "examples/developer-site/site.js","docs/product/phase8a-capabilities.json",
     "examples/basic-pwa/icons/icon-192.png","examples/basic-pwa/icons/icon-512.png",
     "src/wonder.js","src/compute.wasm"
   ];
@@ -24,7 +26,9 @@ test("static bundle exports only PWA and browser SDK assets",async()=>{
     const report=await buildDeviceLab({sourceRoot:root+"/",targetRoot:out+"/"});
     assert.equal(report.fileCount,files.length);
     assert.equal((await readFile(join(out,"src/compute.wasm"),"utf8")),"src/compute.wasm");
-    assert.deepEqual((await readdir(out)).sort(),["examples","src"]);
+    assert.deepEqual((await readdir(out)).sort(),["docs","examples","src"]);
+    assert.equal((await readFile(join(out,"docs/product/phase8a-capabilities.json"),"utf8")),"docs/product/phase8a-capabilities.json");
+    assert.equal((await readFile(join(out,"examples/developer-site/index.html"),"utf8")),"examples/developer-site/index.html");
     await assert.rejects(readFile(join(out,".env")),{code:"ENOENT"});
     await assert.rejects(readFile(join(out,"package.json")),{code:"ENOENT"});
   }finally{await rm(root,{recursive:true,force:true});}
