@@ -13,9 +13,9 @@ concurrency:
   cancel-in-progress: true
 jobs:
   codeql:
-    name: CodeQL JavaScript security-and-quality
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    name: CodeQL JavaScript security-and-quality (macOS fallback)
+    runs-on: macos-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Initialize GitHub CodeQL
@@ -26,8 +26,8 @@ jobs:
       - name: Analyze source code
         uses: github/codeql-action/analyze@v4
   dependency-audit:
-    name: Runtime dependency and release policy audit
-    runs-on: ubuntu-latest
+    name: Runtime dependency and release policy audit (macOS fallback)
+    runs-on: macos-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4

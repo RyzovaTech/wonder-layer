@@ -16,8 +16,8 @@ concurrency:
 
 jobs:
   node-tests:
-    name: Node ${{ matrix.node }}
-    runs-on: ubuntu-latest
+    name: Node ${{ matrix.node }} (macOS fallback)
+    runs-on: macos-latest
     timeout-minutes: 10
     strategy:
       fail-fast: false

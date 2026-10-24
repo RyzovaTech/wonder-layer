@@ -103,8 +103,10 @@ void client;void createReactWonderBindings;void createVueWonderBindings;
   // Keep short timeouts for builds, but allocate bounded time for browser setup
   // and stream installation diagnostics rather than hiding stdout.
   command(join(project,"node_modules",".bin","playwright"),
-    ["install","--with-deps","chromium","firefox","webkit"],project,
-    {timeoutMs:15*60*1000,streamOutput:true});
+    process.platform==="linux"?
+      ["install","--with-deps","chromium","firefox","webkit"]:
+      ["install","chromium","firefox","webkit"],
+    project,{timeoutMs:15*60*1000,streamOutput:true});
   const localRequire=createRequire(join(project,"package.json"));
   const {chromium,firefox,webkit}=localRequire("playwright");
   for(const [browserName,browserType] of Object.entries({chromium,firefox,webkit})){
