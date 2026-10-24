@@ -12,11 +12,18 @@ import {readPrivateFile,writePrivateFile,getStorageEstimate} from "./files.js";
 
 export async function createWonderLayer({dbName="ryzova-wonder",endpoint="/api/sync"}={}){
   const store=await openWonderStore(dbName);
+  try{
   const engine=createAdaptiveEngine();
   const hardware=createHardwareBridge();
   const recovery=createRecoveryManager(store);
   const pwa=createPWALifecycle();
   async function sync(){return store.sync(endpoint);}
+  let closed=false;
+  function close(){
+    if(closed)return;
+    closed=true;
+    try{pwa.close();}finally{store.close();}
+  }
   return {
     runtime:"pure-pwa",
     capabilities:()=>detectCapabilities(),
@@ -37,8 +44,14 @@ export async function createWonderLayer({dbName="ryzova-wonder",endpoint="/api/s
       return {imported,skipped};
     },
     async requestPersistentStorage(){return !!(await globalThis.navigator?.storage?.persist?.());},
-    close:()=>{pwa.close();store.close();}
+    close
   };
+  }catch(error){
+    // Storage opened successfully; do not leak its connection if a later
+    // synchronous subsystem constructor throws during SDK initialization.
+    store.close();
+    throw error;
+  }
 }
 export {detectCapabilities,inspectCapabilities} from "./capabilities.js";
 export {adaptiveCompute,jsTransform,wasmTransform,gpuTransform,workerTransform,selectComputeOrder} from "./compute.js";
