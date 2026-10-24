@@ -22,6 +22,9 @@ export async function buildDeviceLab({sourceRoot=root,targetRoot=target}={}){
   // canonicalize before checking strict output containment.
   sourceRoot=resolve(sourceRoot);
   targetRoot=resolve(targetRoot);
+  // Validate destination BEFORE touching source files or preparing output.
+  if(targetRoot===sourceRoot||!targetRoot.startsWith(sourceRoot+"/"))
+    throw Error("Device lab output must be isolated under repository");
   const allowed=[...inputs];
   const sources=await readdir(resolve(sourceRoot,"src"),{withFileTypes:true});
   for(const entry of sources){
@@ -30,9 +33,6 @@ export async function buildDeviceLab({sourceRoot=root,targetRoot=target}={}){
       allowed.push("src/"+entry.name);
     }
   }
-  // Do not allow accidental writes into source tree.
-  if(targetRoot===sourceRoot||!targetRoot.startsWith(sourceRoot+"/"))
-    throw Error("Device lab output must be isolated under repository");
   await rm(targetRoot,{recursive:true,force:true});
   let bytes=0;
   for(const rel of allowed){
