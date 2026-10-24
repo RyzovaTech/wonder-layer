@@ -3,7 +3,7 @@ const CACHE="ryzova-wonder-device-lab-v1";
 const scope=self.registration.scope;
 const asset=path=>new URL(path,scope).href;
 const SHELL=[
-  "./","./index.html","./lab.js","./manifest.webmanifest",
+  "./","./index.html","./lab.js","./styles.css","./manifest.webmanifest",
   "../basic-pwa/icons/icon-192.png","../basic-pwa/icons/icon-512.png",
   "../../src/wonder.js","../../src/store.js","../../src/capabilities.js",
   "../../src/compute.js","../../src/compute-worker.js","../../src/compute.wasm",
