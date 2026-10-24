@@ -18,6 +18,10 @@ const inputs=[
   "examples/basic-pwa/icons/icon-512.png"
 ];
 export async function buildDeviceLab({sourceRoot=root,targetRoot=target}={}){
+  // fileURLToPath(new URL("../", import.meta.url)) ends in a slash;
+  // canonicalize before checking strict output containment.
+  sourceRoot=resolve(sourceRoot);
+  targetRoot=resolve(targetRoot);
   const allowed=[...inputs];
   const sources=await readdir(resolve(sourceRoot,"src"),{withFileTypes:true});
   for(const entry of sources){
