@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="Ryzova Wonder Layer engineering preview: a Pure-PWA capability SDK with offline storage, adaptive compute and browser-controlled hardware access.">
+  <meta name="theme-color" content="#0b1120">
+  <title>Wonder Layer — Build more capable Pure PWAs</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a href="#top" class="brand" aria-label="Wonder Layer home"><span class="brand-icon" aria-hidden="true">W</span><span>WONDER<span class="brand-muted">LAYER</span></span></a>
+      <nav aria-label="Main navigation"><a href="#capabilities">Capabilities</a><a href="#playground">Playground</a><a href="#get-started">Get started</a><a href="#release">Release status</a></nav>
+      <span class="top-status">Engineering preview</span>
+    </div>
+  </header>
+  <main id="content">
+    <section class="hero container" id="top" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="signal"></span> PURE PWA · NO MANDATORY NATIVE WRAPPER</p>
+        <h1 id="hero-title">Give the web app you already built <em>more room to wonder.</em></h1>
+        <p class="lead">Local-first records. Recovery you control. Adaptive computation. Browser-permitted device APIs. One experimental JavaScript SDK, with real fallbacks and honest platform boundaries.</p>
+        <div class="hero-actions">
+          <a class="primary-link" href="#playground">Explore the live playground <span aria-hidden="true">↗</span></a>
+          <a class="quiet-link" href="#get-started">Developer quick start →</a>
+        </div>
+        <p class="fineprint">Protected developer preview, not an approved public package or production-security certification.</p>
+      </div>
+      <div class="hero-visual" aria-label="Four capability areas: inspect, compute, persist and recover">
+        <div class="terminal">
+          <div class="terminal-title"><span aria-hidden="true" class="terminal-dots">● ● ●</span> wonder-layer / capability map</div>
+          <div class="terminal-body">
+            <div class="term-line"><span class="term-number">01</span><span class="term-key">inspect()</span><span class="term-desc">detect what's actually available</span></div>
+            <div class="term-line"><span class="term-number">02</span><span class="term-key">compute()</span><span class="term-desc">JS · WASM · Worker · GPU*</span></div>
+            <div class="term-line"><span class="term-number">03</span><span class="term-key">store.save()</span><span class="term-desc">origin-local records</span></div>
+            <div class="term-line"><span class="term-number">04</span><span class="term-key">recovery.export()</span><span class="term-desc">verified backup format</span></div>
+          </div>
+          <div class="terminal-bottom"><span class="status-dot"></span> Explicit permission · Graceful fallback <span class="terminal-star">*Where supported</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="capabilities" class="section section-dark">
+      <div class="container">
+        <div class="section-heading">
+          <div><p class="eyebrow">THE CAPABILITY LAYER</p><h2>Practical power, clearly scoped.</h2></div>
+          <p class="section-aside">These entries load from the repository's Phase 8A product-claims manifest—not from aspirational feature copy.</p>
+        </div>
+        <p id="capability-status" class="muted" role="status" aria-live="polite">Loading verified capability descriptions…</p>
+        <div id="capability-grid" class="capability-grid" aria-label="SDK capability descriptions"></div>
+      </div>
+    </section>
+
+    <section id="playground" class="section">
+      <div class="container">
+        <div class="section-heading">
+          <div><p class="eyebrow">LIVE IN YOUR BROWSER</p><h2>Try the layer. See the result.</h2></div>
+          <p class="section-aside">Actions happen only when clicked. The demo uses synthetic data, never calls sync, and never requests hardware permissions.</p>
+        </div>
+        <div class="playground-grid">
+          <div class="play-actions">
+            <article class="action-card"><span class="action-number">01 / Inspect</span><h3>Know your environment</h3><p>Inspect browser capabilities without opening any device chooser or permission prompt.</p><button type="button" data-action="inspect">Inspect capabilities <span aria-hidden="true">→</span></button></article>
+            <article class="action-card"><span class="action-number">02 / Compute</span><h3>Watch a backend respond</h3><p>Run a small numerical transform. See the backend actually selected—not a claimed GPU benchmark.</p><button type="button" data-action="compute">Run compute <span aria-hidden="true">→</span></button></article>
+            <article class="action-card"><span class="action-number">03 / Local-first</span><h3>Save and reopen locally</h3><p>Write the literal sample value to an isolated IndexedDB database, then open it again.</p><div class="button-pair"><button type="button" data-action="save">Save example <span aria-hidden="true">→</span></button><button type="button" data-action="read">Read example <span aria-hidden="true">→</span></button></div></article>
+          </div>
+          <div class="result-panel">
+            <div class="result-top"><span><span class="status-dot"></span> Playground output</span><span>LOCAL ONLY</span></div>
+            <pre id="playground-output" role="status" aria-live="polite">Select an action to see verified results from this browser.
+No data is transmitted by this demo.</pre>
+            <p class="result-note">Unsupported APIs are reported, not silently marked as working. Records can be cleared using your browser's site-data controls.</p>
+          </div>
+        </div>
+        <p class="muted lab-link">For consent-based physical-device and offline-restart acceptance, use the <a href="../device-lab/">protected Device Lab ↗</a>. That lab requires separately attested real-device evidence.</p>
+      </div>
+    </section>
+
+    <section id="get-started" class="section section-dark">
+      <div class="container">
+        <div class="section-heading"><div><p class="eyebrow">BUILD WITH WONDER</p><h2>A familiar API for your stack.</h2></div><p class="section-aside">Vanilla JavaScript, React and Vue entrypoints are already implemented and tested with an external packaged consumer matrix.</p></div>
+        <div class="install-notice"><strong>Private package, local builds only.</strong> From an authorized repository checkout run <code>npm test</code> and <code>npm pack</code>, then install the generated tarball into your existing PWA. No public npm registry package is available yet.</div>
+        <div class="code-shell">
+          <div class="code-top">
+            <div class="tabs" role="group" aria-label="SDK integration example">
+              <button type="button" data-snippet="vanilla" aria-pressed="true">Vanilla JS</button>
+              <button type="button" data-snippet="react" aria-pressed="false">React</button>
+              <button type="button" data-snippet="vue" aria-pressed="false">Vue 3</button>
+            </div>
+            <button type="button" id="copy-snippet" class="copy-button">Copy code</button>
+          </div>
+          <pre class="code-content"><code id="snippet-code" aria-live="polite">Loading local example…</code></pre>
+          <div class="code-bottom" id="copy-status" role="status" aria-live="polite">Run in a browser or after hydration; not in SSR.</div>
+        </div>
+        <div class="guide-links">
+          <a href="https://github.com/RyzovaTech/wonder-layer/blob/main/docs/DEVELOPER_SDK.md" rel="noopener noreferrer">Developer SDK guide ↗</a>
+          <a href="https://github.com/RyzovaTech/wonder-layer/blob/main/docs/PHASE8B_SDK_PRODUCT_QUALITY.md" rel="noopener noreferrer">Lifecycle & versioning ↗</a>
+          <a href="../basic-pwa/">Basic offline PWA example ↗</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="release" class="section">
+      <div class="container release-grid">
+        <div><p class="eyebrow">RELEASE TRANSPARENCY</p><h2>Useful today for engineering evaluation. Not ready for public distribution.</h2><p>The current package is <code>0.0.0-poc.1</code> and <code>private: true</code>. Automated desktop/browser CI is evidence for those hosted scenarios only.</p></div>
+        <div class="release-card"><h3>Before commercial/public launch</h3><ul><li>Physical Android Chrome and iPhone Safari acceptance</li><li>Independent signed security review</li><li>Linux latest-head CI and enforced branch protection</li><li>Approved license, distribution, and support terms</li></ul><a href="https://github.com/RyzovaTech/wonder-layer/issues/19" rel="noopener noreferrer">See release gates ↗</a></div>
+      </div>
+    </section>
+  </main>
+  <footer><div class="container footer-inner"><span>Ryzova Wonder Layer <span class="footer-muted">/ Pure-PWA engineering preview</span></span><a href="https://github.com/RyzovaTech/wonder-layer" rel="noopener noreferrer">GitHub ↗</a></div></footer>
+  <script type="module" src="./site.js"></script>
+</body>
+</html>
