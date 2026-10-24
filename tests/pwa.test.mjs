@@ -55,3 +55,64 @@ test("unsupported and insecure worker contexts report errors",async()=>{
   await assert.rejects(createPWALifecycle({env:x.env}).register("./sw.js"),/secure/);
 });
 
+test("parallel PWA registration joins one browser registration and installs listeners once",async()=>{
+  const x=mock();
+  let resolveRegister,registerCalls=0;
+  x.env.navigator.serviceWorker.register=()=>{
+    registerCalls++;
+    return new Promise(resolve=>{resolveRegister=resolve;});
+  };
+  const pwa=createPWALifecycle({env:x.env});
+  const first=pwa.register("./sw.js",{scope:"./"});
+  const second=pwa.register("./sw.js",{scope:"./"});
+  await Promise.resolve(); // Browser register starts on a microtask.
+  assert.equal(registerCalls,1);
+  resolveRegister(x.reg);
+  const [a,b]=await Promise.all([first,second]);
+  assert.strictEqual(a,x.reg);
+  assert.strictEqual(b,x.reg);
+  assert.equal(x.regEvents.size,1);
+  assert.equal(x.swEvents.size,1);
+  assert.equal(x.events.size,2);
+  pwa.close();
+  assert.equal(x.regEvents.size,0);
+  assert.equal(x.swEvents.size,0);
+  assert.equal(x.events.size,0);
+});
+
+test("closing during pending PWA registration does not install orphan listeners or unregister host worker",async()=>{
+  const x=mock();
+  let resolveRegister,unregisterCalls=0;
+  x.reg.unregister=()=>{unregisterCalls++;};
+  x.env.navigator.serviceWorker.register=()=>new Promise(resolve=>{resolveRegister=resolve;});
+  const pwa=createPWALifecycle({env:x.env});
+  const pending=pwa.register("./sw.js");
+  await Promise.resolve();
+  pwa.close();
+  pwa.close(); // Idempotent teardown.
+  resolveRegister(x.reg);
+  await assert.rejects(pending,/closed during registration/);
+  assert.equal(x.regEvents.size,0);
+  assert.equal(x.swEvents.size,0);
+  assert.equal(x.events.size,0);
+  assert.equal(unregisterCalls,0,"SDK must not delete host-owned service-worker scope");
+  await assert.rejects(pwa.register("./sw.js"),/closed/);
+  await assert.rejects(pwa.checkForUpdate(),/closed/);
+  assert.equal(pwa.activateWaiting(),false);
+  assert.deepEqual(await pwa.requestInstall(),{available:false});
+});
+
+test("failed PWA registration can be explicitly retried without stale promise",async()=>{
+  const x=mock();
+  let calls=0;
+  x.env.navigator.serviceWorker.register=async()=>{
+    if(++calls===1)throw Error("temporary registration failure");
+    return x.reg;
+  };
+  const pwa=createPWALifecycle({env:x.env});
+  await assert.rejects(pwa.register("./sw.js"),/temporary registration failure/);
+  assert.equal(pwa.registration,null);
+  assert.strictEqual(await pwa.register("./sw.js"),x.reg);
+  assert.equal(calls,2);
+  pwa.close();
+});

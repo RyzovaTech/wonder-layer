@@ -113,6 +113,14 @@ The plugin is client-only: install it after hydration rather than inside server-
 6. Verify no extra overlapping service workers were registered by the SDK.
 7. Run `npm test` and then the unrestricted browser acceptance runner on real supported devices.
 
+## SDK lifecycle and size guardrails (Phase 8B)
+
+- One `layer.pwa` lifecycle instance coalesces concurrent `register("./sw.js", {scope:"./"})` calls. Keep URL and scope consistent within that lifecycle.
+- If `pwa.close()` occurs during an asynchronous browser registration, pending callers receive a descriptive error; no extra listeners are attached to the disposed instance. The SDK never silently unregisters a worker that the browser/host owns.
+- `layer.close()` is safe to call repeatedly, and `createWonderClient().dispose()` releases the owned layer.
+- `npm run size:check` rebuilds `dist` and checks a **512 KiB total raw SDK asset budget** and **96 KiB single JS asset budget**, including JS/WASM/types. These are *not* minified or gzipped browser bundle measurements.
+- See [Phase 8B product quality](PHASE8B_SDK_PRODUCT_QUALITY.md) for experimental API/versioning expectations. All SDK public surfaces remain pre-release and not certified on physical mobile devices.
+
 ## Current development restrictions
 
 The SDK package is **private:true**, and there is no selected RyzovaTech license. Do not publicly publish or market as production secure/multi-tenant sync. Release to npm requires a licensing, security, browser/device and versioning decision after full acceptance.

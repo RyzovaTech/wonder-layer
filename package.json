@@ -48,6 +48,7 @@
     "test:security": "node --test tests/sync-security.test.mjs tests/store.test.mjs",
     "check:release": "node tools/release-gate.mjs",
     "beta:manifest": "npm run build && node tools/beta-candidate.mjs",
-    "build:device-lab": "node tools/build-device-lab.mjs"
+    "build:device-lab": "node tools/build-device-lab.mjs",
+    "size:check": "npm run build && node tools/sdk-size-report.mjs"
   }
 }

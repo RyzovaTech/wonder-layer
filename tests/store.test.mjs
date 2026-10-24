@@ -258,3 +258,19 @@ test("HTML response and oversized response are rejected before applying acks",wi
     assert.equal((await db.pending()).length,1);
   }finally{globalThis.fetch=original;db.close();}
 }));
+
+test("Phase 8B SDK close is idempotent and releases its IndexedDB connection once",withIndexedDB(async()=>{
+  let closes=0;
+  const originalOpen=globalThis.indexedDB.open;
+  globalThis.indexedDB.open=(...args)=>{
+    const request=originalOpen(...args);
+    const db=request.result;
+    const originalClose=db.close.bind(db);
+    db.close=()=>{closes++;originalClose();};
+    return request;
+  };
+  const layer=await createWonderLayer({dbName:"phase8b-lifecycle-close"});
+  layer.close();
+  layer.close();
+  assert.equal(closes,1);
+}));
