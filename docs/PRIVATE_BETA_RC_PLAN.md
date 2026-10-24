@@ -23,6 +23,16 @@ node tools/beta-candidate.mjs
 
 Never execute `npm publish` or remove `private:true` without a written authorized decision and approved license. Distribution to invited testers must use an explicitly authorized access-controlled channel; GitHub Actions artifacts in a public repository are not an acceptable default channel for private distribution.
 
+## Authentication-protected HTTPS preview
+
+A dedicated Vercel project `wonder-layer-device-lab` is configured with **Vercel Authentication for all deployment targets**. It uses `npm run build:device-lab` to create a static `public/` tree limited to the Device Lab, sample icons and SDK browser JS/WASM modules. It is intentionally not a public npm release or an unauthenticated customer app.
+
+- Repository-linked staging branch: `engineering/private-beta-rc-readiness`.
+- Do not bypass authentication with publicly shared protection-bypass URLs.
+- After the exact PR head has been tested and the deployment is READY, the lab path is `/examples/device-lab/`.
+- Only team-authorized Vercel testers can access it. Other invited beta testers require a separately approved access-control approach.
+- HTTPS and browser permissions still do not prove physical device origin. No production sync server or customer data is used.
+
 ## Physical-device intake (release gate)
 
 1. Use a trusted, **access-controlled HTTPS** deployment of the static repo and `/examples/device-lab/` in a browser on each *physical* device.
