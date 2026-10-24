@@ -2,6 +2,8 @@
 
 **This is an execution protocol, not a claim that Android/iOS or physical hardware already passed.**
 
+> **Phase 8D extension:** The Device Lab now emits `ryzova-device-acceptance-v2` with a manual offline state machine for SW control, offline reload and cold restart. Version 1 remains valid legacy data but has no structured offline observations. The verifier always reports self-reported evidence and never certifies physical hardware. Follow [the Phase 8D protocol](PHASE8D_PHYSICAL_VALIDATION.md) for the latest steps, constraints and separate human attestation.
+
 ## Safe local device lab
 
 Run the repository over HTTPS on the target device (or localhost on that same device) and navigate to `/examples/device-lab/`. For a phone connecting to a development computer, ordinary `http://192.168.x.x` is **not a secure context** and will typically block hardware APIs. Use a trusted HTTPS deployment with authentication and access controls, or host on-device; avoid sharing private test data or exposing demo sync endpoints on the public Internet.

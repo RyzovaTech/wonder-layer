@@ -55,9 +55,39 @@
       <button id="read-synthetic" type="button">Read synthetic value</button>
       <p id="offline-status" role="status" aria-live="polite">No synthetic data test performed.</p>
     </section>
+    <section aria-labelledby="offline-heading">
+      <h2 id="offline-heading">Phase 8D — Manual physical offline checks</h2>
+      <p>These are <strong>self-reported observations</strong>, never automatic physical-device certification. Perform all tests on an authorized real device. Do not enter names, serial numbers, media, coordinates or account IDs.</p>
+      <ol>
+        <li>While online, let the Service Worker install, then click <strong>Check SW control</strong>. Save the synthetic value above.</li>
+        <li>Manually disconnect all networking (airplane mode or disable Wi-Fi and cellular), then reload and read the synthetic value.</li>
+        <li>Keep networking off. Fully close the physical browser/PWA, reopen this page offline and read again. A reload alone is not a cold restart.</li>
+        <li>Record only your observations below. Unsupported or failed outcomes must not be marked passed. A reviewer later verifies device provenance separately.</li>
+      </ol>
+      <button type="button" id="check-sw-control">Check SW control (no permissions)</button>
+      <p id="sw-control-status" role="status" aria-live="polite">SW control not checked.</p>
+      <label><input type="checkbox" id="network-offline-confirmed"> I manually verified networking was disconnected during the offline and restart checks</label>
+      <label>Offline reload and synthetic value recovered
+        <select id="offline-reload-result">
+          <option value="not-tested">Not tested</option>
+          <option value="observed-pass">Observed pass (self-reported)</option>
+          <option value="observed-fail">Observed fail</option>
+          <option value="unsupported">Unsupported</option>
+        </select>
+      </label>
+      <label>Cold browser/PWA restart while offline
+        <select id="cold-restart-result">
+          <option value="not-tested">Not tested</option>
+          <option value="observed-pass">Observed pass (self-reported)</option>
+          <option value="observed-fail">Observed fail</option>
+          <option value="unsupported">Unsupported</option>
+        </select>
+      </label>
+      <p class="note">An observed pass is valid as a self-report only after SW control and the preceding offline step pass. JSON cannot prove physical hardware, network isolation, reviewer independence or release approval.</p>
+    </section>
     <section>
       <h2>Export privacy-minimized evidence</h2>
-      <p>Includes only manually selected OS/browser, approximate version, coarse pass/denied/unsupported outcomes, and GPU numerical parity. Does not send results anywhere.</p>
+      <p>V2 JSON contains only manually selected OS/browser, approximate version, coarse capability results and manual offline observations. Does not send results anywhere. A local file is never independent device certification.</p>
       <button type="button" id="download">Download local JSON evidence</button>
       <button type="button" id="clear">Clear local in-memory results</button>
     </section>

@@ -1,5 +1,5 @@
 "use strict";
-const CACHE="ryzova-wonder-device-lab-v1";
+const CACHE="ryzova-wonder-device-lab-v2";
 const scope=self.registration.scope;
 const asset=path=>new URL(path,scope).href;
 const SHELL=[
