@@ -3,7 +3,7 @@
  * temporary consumer project, strict-typecheck it, and produce 3 Vite bundles.
  * Nothing is published to a registry. Do not equate builds with device tests.
  */
-import {mkdtemp,cp,mkdir,writeFile,readFile,readdir,rm} from "node:fs/promises";
+import {mkdtemp,cp,mkdir,writeFile,readFile,readdir,rm,realpath} from "node:fs/promises";
 import {execFileSync} from "node:child_process";
 import {tmpdir} from "node:os";
 import {basename,join,resolve} from "node:path";
@@ -12,7 +12,8 @@ import {createServer} from "node:http";
 import {createRequire} from "node:module";
 
 const root=fileURLToPath(new URL("../",import.meta.url));
-const tmp=await mkdtemp(join(tmpdir(),"wonder-consumer-"));
+// macOS maps /var -> /private/var; Vite/Rollup require a canonical root.
+const tmp=await realpath(await mkdtemp(join(tmpdir(),"wonder-consumer-")));
 const result={schema:"ryzova-phase6-consumers-v1",dateUtc:new Date().toISOString(),
   sdkPackage:"local npm tarball",projects:[],strictTypes:"unverified",browserRuntime:[]};
 function command(file,args,cwd,{timeoutMs=4*60*1000,streamOutput=false}={}){
