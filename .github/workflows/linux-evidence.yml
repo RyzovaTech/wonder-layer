@@ -1,0 +1,64 @@
+# Explicit Linux coverage is separate from macOS fallback acceptance.
+# A successful job is evidence only for an Ubuntu-hosted runner, never physical iOS/Android.
+name: Linux SDK and browser evidence
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-node:
+    name: Linux Node ${{ matrix.node }} SDK and release gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Validate SDK and v2 device intake on a real Linux runner
+        run: npm test
+      - name: Assert experimental package cannot be published
+        run: node tools/release-gate.mjs
+      - name: Local archive contents audit (no publish)
+        run: npm pack --dry-run --ignore-scripts
+
+  linux-browsers:
+    name: Linux ${{ matrix.browser }} browser acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install native Linux browser engine and OS prerequisites
+        run: |
+          python -m pip install "playwright>=1.56,<2"
+          python -m playwright install --with-deps ${{ matrix.browser }}
+      - name: Real Linux desktop browser offline/storage/Device Lab acceptance
+        run: |
+          python tests/browser_acceptance.py --browser ${{ matrix.browser }} --profile desktop --output results/linux-${{ matrix.browser }}-desktop.json
+      - name: Save real Linux runner browser evidence, even if tests fail
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wonder-linux-${{ matrix.browser }}-acceptance
+          path: results/linux-${{ matrix.browser }}-desktop.json
+          if-no-files-found: warn
