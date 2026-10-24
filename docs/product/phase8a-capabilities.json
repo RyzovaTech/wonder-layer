@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-10-24",
+  "product": {
+    "name": "Ryzova Wonder Layer",
+    "packageName": "@ryzova/wonder-layer",
+    "version": "0.0.0-poc.1",
+    "stage": "engineering-beta",
+    "positioning": "Pure-PWA capability SDK for offline-resilient, device-aware browser applications",
+    "audience": "Developers extending existing local-first or offline-first web applications",
+    "promise": "Integrate browser-permitted storage, recovery, adaptive compute, and device capabilities with explicit fallbacks and no mandatory native wrapper"
+  },
+  "distribution": {
+    "npmPrivate": true,
+    "publicNpmApproved": false,
+    "licenseApproved": false,
+    "independentSecurityApproved": false,
+    "physicalMobileApproved": false
+  },
+  "entrypoints": [
+    {
+      "name": "Vanilla / core",
+      "packageExport": "."
+    },
+    {
+      "name": "Lazy browser client",
+      "packageExport": "./client"
+    },
+    {
+      "name": "React adapter",
+      "packageExport": "./react"
+    },
+    {
+      "name": "Vue adapter",
+      "packageExport": "./vue"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "capability-inspection",
+      "sdkRoot": "inspect",
+      "scope": "Capability detection/inspection without requesting permission",
+      "implementation": "implemented",
+      "hostedAutomatedEvidence": "yes",
+      "physicalDeviceEvidence": "not-verified"
+    },
+    {
+      "id": "adaptive-compute",
+      "sdkRoot": "compute",
+      "scope": "Float32Array transforms using JS/WASM/Worker and conditional WebGPU fallback",
+      "implementation": "implemented",
+      "hostedAutomatedEvidence": "yes",
+      "physicalDeviceEvidence": "not-verified"
+    },
+    {
+      "id": "local-record-store",
+      "sdkRoot": "store",
+      "scope": "Origin-scoped IndexedDB local records and opt-in outbox",
+      "implementation": "implemented",
+      "hostedAutomatedEvidence": "yes",
+      "physicalDeviceEvidence": "not-verified"
+    },
+    {
+      "id": "backup-recovery",
+      "sdkRoot": "recovery",
+      "scope": "Explicit backup/restore with integrity metadata and eviction caveats",
+      "implementation": "implemented",
+      "hostedAutomatedEvidence": "yes",
+      "physicalDeviceEvidence": "not-verified"
+    },
+    {
+      "id": "origin-private-files",
+      "sdkRoot": "files",
+      "scope": "Browser-permitted OPFS file access when supported",
+      "implementation": "implemented",
+      "hostedAutomatedEvidence": "yes",
+      "physicalDeviceEvidence": "not-verified"
+    },
+    {
+      "id": "pwa-lifecycle",
+      "sdkRoot": "pwa",
+      "scope": "Host-controlled service-worker lifecycle and opt-in install/update actions",
+      "implementation": "implemented",
+      "hostedAutomatedEvidence": "yes",
+      "physicalDeviceEvidence": "not-verified"
+    },
+    {
+      "id": "permission-gated-hardware",
+      "sdkRoot": "hardware",
+      "scope": "Capability queries and explicit user-gesture hardware API requests, where supported",
+      "implementation": "implemented",
+      "hostedAutomatedEvidence": "partial",
+      "physicalDeviceEvidence": "not-verified"
+    },
+    {
+      "id": "opt-in-foreground-sync",
+      "sdkRoot": "sync",
+      "scope": "Client-side same-origin transport and reconnect/outbox tooling; no production backend or tenant security provided",
+      "implementation": "implemented-client-only",
+      "hostedAutomatedEvidence": "yes",
+      "physicalDeviceEvidence": "not-verified"
+    }
+  ],
+  "notProvided": {
+    "nativeApiParity": false,
+    "unrestrictedBackgroundTasks": false,
+    "permissionBypass": false,
+    "guaranteedOfflineDataPersistence": false,
+    "includedAiModel": false,
+    "includedProductionSyncServer": false,
+    "physicalDeviceCertification": false,
+    "comparativePerformanceProof": false
+  },
+  "validatedBaseline": {
+    "mergeSha": "4a7090eeb7f89da95b2ef971d3b53795de0ef135",
+    "workflows": {
+      "sdk": "https://github.com/RyzovaTech/wonder-layer/actions/runs/40063863814",
+      "consumer": "https://github.com/RyzovaTech/wonder-layer/actions/runs/40063863602",
+      "browser": "https://github.com/RyzovaTech/wonder-layer/actions/runs/40063863622",
+      "security": "https://github.com/RyzovaTech/wonder-layer/actions/runs/40063863609"
+    },
+    "caveat": "Hosted CI passes do not prove actual Android/iPhone tests, real peripheral access, physical GPU capability, Linux latest-head CI or an independent audit"
+  },
+  "releaseBlockers": [
+    {
+      "name": "Physical mobile and hardware verification",
+      "issue": 18
+    },
+    {
+      "name": "Independent security review and production-sync backend",
+      "issue": 17
+    },
+    {
+      "name": "Linux latest-head CI",
+      "issue": 6
+    },
+    {
+      "name": "License and approved distribution",
+      "issue": 18
+    },
+    {
+      "name": "Main branch protection",
+      "issue": 21
+    }
+  ]
+}
