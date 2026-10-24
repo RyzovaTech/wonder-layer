@@ -227,6 +227,47 @@ def run(browser_name="chromium", executable_path=None, profile="desktop", channe
                   }finally{window.fetch=originalFetch;layer.close();}
                 }""")
             check("cross_origin_sync_has_no_network_or_data_loss",sync_data_exfiltration_guard)
+            def developer_site_real_browser():
+                site=ctx.new_page()
+                try:
+                    address=url.split("/examples/")[0]+"/examples/developer-site/"
+                    response=site.goto(address,wait_until="load",timeout=25000)
+                    assert response and response.ok, "Developer site page unavailable"
+                    site.locator('#capability-status[data-status="ready"]').wait_for(timeout=15000)
+                    assert site.locator("#capability-grid .capability").count()==8
+                    assert "Physical mobile not verified" in site.locator("#capability-status").inner_text()
+                    assert site.locator("button[data-action]").count()==4
+                    assert "Select an action" in site.locator("#playground-output").inner_text()
+                    # No permission prompts or IndexedDB writes occur on initial load.
+                    site.locator('button[data-action="compute"]').click()
+                    site.wait_for_function("""() =>
+                        document.querySelector("#playground-output").textContent.includes('"backend"')
+                    """,timeout=20000)
+                    compute=json.loads(site.locator("#playground-output").inner_text())
+                    assert compute["backend"] in ("js","wasm","worker","gpu")
+                    assert compute["numericalExampleOnly"] is True
+                    site.locator('button[data-action="save"]').click()
+                    site.wait_for_function("""() =>
+                        document.querySelector("#playground-output").textContent.includes('"state": "saved"')
+                    """,timeout=20000)
+                    site.locator('button[data-action="read"]').click()
+                    site.wait_for_function("""() =>
+                        document.querySelector("#playground-output").textContent.includes('"state": "verified"')
+                    """,timeout=20000)
+                    saved=json.loads(site.locator("#playground-output").inner_text())
+                    assert saved["value"]=="wonder-demo-value-only"
+                    site.locator('button[data-snippet="react"]').click()
+                    assert "createReactWonderBindings" in site.locator("#snippet-code").inner_text()
+                    return {
+                        "claimsLoadedFromManifest":True,
+                        "capabilityAreas":8,
+                        "computeBackend":compute["backend"],
+                        "syntheticLocalStoreReopened":True,
+                        "noAutomaticPermissionRequest":True
+                    }
+                finally:
+                    site.close()
+            check("developer_site_manifest_and_opt_in_playground",developer_site_real_browser)
             def device_lab_no_automatic_permissions():
                 lab=ctx.new_page()
                 try:
