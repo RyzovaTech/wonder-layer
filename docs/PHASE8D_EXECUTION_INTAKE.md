@@ -48,6 +48,16 @@ When called with no files, the review intake command prints a fully **NOT TESTED
 
 No device-specific model, serial number, network address, location, media, tester email or free-form private note is emitted. Report counts are for private decision support only. User-supplied files are never used as commands or instructions.
 
+## Linux real-runner verification (separate from physical phones)
+
+The optional-to-release Linux integration experiment has been added as a **normal exact-head PR/main workflow** in `.github/workflows/linux-evidence.yml`. It schedules actual GitHub `ubuntu-latest` runners for Node 20/22 and Chromium, Firefox, WebKit desktop browser acceptance. It does **not** use Linux emulation or macOS fallback for these jobs, and does **not** certify Android/iPhone hardware.
+
+Require all five Linux jobs to report `completed/success` with nonzero real runner IDs and actual executed steps. Record run URLs for the **exact PR SHA** and separately for the **post-merge main SHA**. A macOS CI success, queued job, no-runner failure, a rerun of a different commit, or an uploaded artifact without a successful test cannot satisfy this gate.
+
+In the event Ubuntu-hosted runners fail before allocation, preserve actual `runner_id:0` evidence; do not pretend Linux has been validated. If tests execute and fail, diagnose test failures rather than classifying them as infrastructure errors. Keep the existing macOS/Windows browser checks as independent requirements.
+
+GitHub `main` is currently not protected: a repository owner/admin must apply enforceable branch rules, require the actual check-run names and review policy, and verify the ruleset rather than merely documenting a desired policy.
+
 ## Release boundary
 
 The npm SDK is still `private:true` version `0.0.0-poc.1`. Linux latest-head verification, independent security approval, verified branch ruleset and licensing/distribution authorization remain mandatory unresolved gates. Physical phone evidence **requires actual consenting people and actual physical phones**; this phase's engineering tooling does not substitute for either.
