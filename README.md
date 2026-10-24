@@ -37,6 +37,12 @@ python3 -m http.server 8765
 
 See [Phase 8C implementation, privacy and acceptance gates](docs/PHASE8C_DEVELOPER_SITE.md). The website is **not** a public commercial launch or evidence of real physical-device certification.
 
+## Phase 8D — Physical-device validation tooling
+
+The protected Device Lab now supports a **v2 self-reported offline evidence protocol**: Service Worker control, manually confirmed offline reload and true cold browser/PWA restart are recorded separately. Exported JSON is strictly validated with `node tools/verify-device-evidence.mjs`. Multiple reports can be aggregated as unverified counts **without certifying devices**.
+
+See [Phase 8D physical-device execution and reviewer checklist](docs/PHASE8D_PHYSICAL_VALIDATION.md). Real Android/iPhone test execution and independent human sign-off are **not yet completed**; all release gates remain blocked.
+
 ## Private beta readiness (controlled preview only)
 
 Private beta **engineering preparations**, not a public package publication or production-security certification: [readiness plan](docs/PRIVATE_BETA_RC_PLAN.md), [independent reviewer/device sign-off template](docs/PRIVATE_BETA_REVIEW_TEMPLATE.md), and [the on-device test lab](examples/device-lab/).
