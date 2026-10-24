@@ -67,7 +67,7 @@ test("Phase 3 SDK is imported by host PWA and offline cached",async()=>{
   assert.match(app,/layer\.scheduler\.calibrate/);
   assert.ok(sw.includes("../../src/scheduler.js"));
   assert.ok(sw.includes("../../src/hardware.js"));
-  assert.ok(sw.includes("ryzova-wonder-integration-v3"));
+  assert.ok(sw.includes("ryzova-wonder-integration-v4"));
 });
 
 test("Phase 4 PWA lifecycle, recovery, and cache dependencies are wired",async()=>{

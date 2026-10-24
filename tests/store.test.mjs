@@ -207,3 +207,54 @@ test("bulk recovery rejects malformed batch before touching store",withIndexedDB
     assert.equal((await db.pending()).length,0);
   }finally{db.close();}
 }));
+
+test("malicious sync response cannot clear or alter queued local data",withIndexedDB(async()=>{
+  const beforeFetch=globalThis.fetch;
+  const db=await openWonderStore("untrusted-remote");
+  try{
+    await db.save("private-note","kept locally");
+    globalThis.fetch=async()=>({ok:true,json:async()=>({
+      applied:[{record_id:"private-note",op_id:"unrelated",revision:100}],
+      conflicts:[]
+    })});
+    await assert.rejects(db.sync("/api/sync"),/Unsolicited/);
+    assert.equal((await db.pending()).length,1);
+    assert.equal((await db.listRecords())[0].content,"kept locally");
+    assert.equal((await db.listRecords())[0].dirty,true);
+  }finally{globalThis.fetch=beforeFetch;db.close();}
+}));
+test("sync uses no-store same-origin credentials and refuses redirects",withIndexedDB(async()=>{
+  const original=globalThis.fetch;
+  const db=await openWonderStore("safe-sync-options");
+  try{
+    await db.save("item","local");
+    globalThis.fetch=async(endpoint,options)=>{
+      assert.equal(endpoint,"/api/sync");
+      assert.equal(options.mode,"same-origin");
+      assert.equal(options.credentials,"same-origin");
+      assert.equal(options.redirect,"error");
+      assert.equal(options.referrerPolicy,"no-referrer");
+      assert.equal(options.cache,"no-store");
+      const op=JSON.parse(options.body).operations[0];
+      return {ok:true,headers:{get:name=>name==="content-type"?"application/json":null},
+        json:async()=>({applied:[{record_id:op.record_id,op_id:op.op_id,revision:1}],conflicts:[]})};
+    };
+    assert.equal((await db.sync("/api/sync")).pending,0);
+  }finally{globalThis.fetch=original;db.close();}
+}));
+test("HTML response and oversized response are rejected before applying acks",withIndexedDB(async()=>{
+  const original=globalThis.fetch;
+  const db=await openWonderStore("unsafe-payload");
+  try{
+    await db.save("item","private");
+    let parsed=false;
+    globalThis.fetch=async()=>({ok:true,headers:{get:name=>name==="content-type"?"text/html":null},
+      json:async()=>{parsed=true;return {};}});
+    await assert.rejects(db.sync("/api/sync"),/must be JSON/);
+    assert.equal(parsed,false);
+    globalThis.fetch=async()=>({ok:true,headers:{get:name=>name==="content-type"?"application/json":"2000001"},
+      json:async()=>{parsed=true;return {};}});
+    await assert.rejects(db.sync("/api/sync"),/size limit/);
+    assert.equal((await db.pending()).length,1);
+  }finally{globalThis.fetch=original;db.close();}
+}));

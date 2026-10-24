@@ -4,7 +4,15 @@
 
 Ryzova Wonder Layer is a framework-independent experimental SDK for giving existing Progressive Web Apps access to the best available modern web capabilities, with runtime fallback and realistic browser boundaries.
 
-> **Engineering baseline, not a production release.** Browser acceptance and actual WebGPU hardware execution are not yet verified. A browser SDK cannot bypass device permissions, guarantee indefinite background execution, or silently install applications.
+> **Engineering beta, not a production release.** Automated desktop/browser acceptance has been verified on Chromium, Firefox, WebKit, Windows Edge and macOS WebKit. Real physical Android/iOS devices and WebGPU hardware execution are not yet verified. A browser SDK cannot bypass device permissions, guarantee indefinite background execution, or silently install applications.
+
+## Phase 7 — Security and physical-device release gates
+
+A same-origin-only sync transport, untrusted server-response validation, privacy-minimized click-to-test [physical device lab](examples/device-lab/) and [release readiness gates](docs/PHASE7_RELEASE_CHECKLIST.md) are under active engineering validation.
+
+To test device APIs on a real phone or laptop, serve `/examples/device-lab/` from a **trusted HTTPS origin** (or localhost on the device). The lab does not auto-request any permission or transmit your results. Real Android/iOS device compatibility is **not yet certified**.
+
+The SDK stays `private: true` at version `0.0.0-poc.1`; do not publish it without an explicit license and security/release approval.
 
 ## Phase 5 — Universal Developer SDK package
 

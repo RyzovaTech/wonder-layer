@@ -12,8 +12,8 @@ concurrency:
   cancel-in-progress: true
 jobs:
   consumer-builds:
-    name: Packed SDK → TypeScript, Vanilla, React, Vue
-    runs-on: ubuntu-latest
+    name: Packed SDK → TypeScript, Vanilla, React, Vue (macOS fallback)
+    runs-on: macos-latest
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4

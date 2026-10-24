@@ -1,3 +1,5 @@
+import {validateSyncEndpoint,validateSyncResponse,readBoundedSyncJson} from "./sync-security.js";
+
 function requestResult(request){
   return new Promise((resolve,reject)=>{
     request.onsuccess=()=>resolve(request.result);
@@ -128,14 +130,28 @@ export async function openWonderStore(name="ryzova-wonder"){
       }
     },
     async sync(endpoint="/api/sync"){
+      // Resolve and validate even when there is no pending work: fail closed on
+      // cross-origin, unsafe-scheme or credential-bearing endpoint mistakes.
+      const safeEndpoint=validateSyncEndpoint(endpoint);
       if(syncInFlight)return syncInFlight;
       syncInFlight=(async()=>{
         const operations=(await store.pending()).slice(0,200);
         if(!operations.length)return {applied:[],conflicts:[],pending:0};
-        const response=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({operations})});
+        const response=await fetch(safeEndpoint,{
+          method:"POST",mode:"same-origin",credentials:"same-origin",
+          redirect:"error",referrerPolicy:"no-referrer",cache:"no-store",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({operations})
+        });
         if(!response.ok)throw new Error("Sync failed: HTTP "+response.status);
-        const data=await response.json();
-        if(!Array.isArray(data.applied)||!Array.isArray(data.conflicts))throw new Error("Malformed sync response");
+        const contentType=response.headers?.get?.("content-type");
+        if(response.headers && !/^application\/(?:[a-z0-9.+-]*\+)?json(?:\s*;|\s*$)/i.test(contentType??""))
+          throw new Error("Sync response must be JSON");
+        const length=response.headers?.get?.("content-length");
+        if(length!==null && length!==undefined && Number(length)>1_000_000)
+          throw new Error("Sync response exceeds size limit");
+        const data=await readBoundedSyncJson(response);
+        validateSyncResponse(data,operations);
         await store.applyAcknowledgements(data.applied);
         return {applied:data.applied,conflicts:data.conflicts,pending:(await store.pending()).length};
       })();
