@@ -87,6 +87,16 @@ def run(browser_name="chromium", executable_path=None, profile="desktop", channe
                 if browser_viewport is None or browser_viewport["width"]>500:
                     raise AssertionError("Mobile viewport configuration was not applied")
             def controlled():
+                # Initial module boot awaits registration while the SW installs
+                # and pre-caches its shell. Reloading during the install can
+                # interrupt the first-navigation race, especially on Firefox.
+                # Wait for a fully activated worker BEFORE reloading; still
+                # require real page control after reload (no mocked SW state).
+                page.wait_for_function("""async () => {
+                    if (!navigator.serviceWorker?.getRegistration) return false;
+                    const reg = await navigator.serviceWorker.getRegistration();
+                    return reg?.active?.state === "activated";
+                }""", timeout=30000)
                 page.reload(wait_until="load")
                 page.wait_for_function("() => !!navigator.serviceWorker?.controller", timeout=15000)
                 return page.evaluate("navigator.serviceWorker.controller.scriptURL")
