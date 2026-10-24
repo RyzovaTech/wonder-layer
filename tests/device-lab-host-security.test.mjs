@@ -18,3 +18,14 @@ test("authenticated device-lab host policy has a restrictive CSP and no explicit
   assert.match(get("Permissions-Policy"),/camera=\(self\)/);
   assert.equal(JSON.stringify(config).includes("protection-bypass"),false);
 });
+
+test("service-worker-specific caching wins over broad Device Lab rules",async()=>{
+  const config=JSON.parse(await readFile(new URL("../vercel.json",import.meta.url),"utf8"));
+  const broadIndex=config.headers.findIndex(rule=>rule.source==="/examples/device-lab/(.*)");
+  const swIndex=config.headers.findIndex(rule=>rule.source==="/examples/device-lab/sw.js");
+  assert.ok(broadIndex>=0,"Device Lab default asset rule must exist");
+  assert.ok(swIndex>broadIndex,"Vercel applies later matching headers last; SW rule must come after default");
+  const getCache=rule=>rule.headers.find(header=>header.key.toLowerCase()==="cache-control")?.value;
+  assert.equal(getCache(config.headers[broadIndex]),"no-cache");
+  assert.equal(getCache(config.headers[swIndex]),"no-store");
+});
