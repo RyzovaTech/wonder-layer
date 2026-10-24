@@ -112,16 +112,53 @@ if("serviceWorker" in navigator){
   });
 }
 
+// Phase 8D records manual observations only. A browser API cannot attest real
+// physical-device provenance or prove offline status merely from navigator.onLine.
+let serviceWorkerObservation="not-tested";
+byId("check-sw-control").addEventListener("click",()=>{
+  serviceWorkerObservation=!("serviceWorker" in navigator)?"unsupported":
+    navigator.serviceWorker.controller?"observed-pass":"observed-fail";
+  byId("sw-control-status").textContent=serviceWorkerObservation==="observed-pass"?
+    "SW controller observed by this page. This does not prove an offline restart.":
+    "SW control: "+serviceWorkerObservation+". If installed, reload the page while online and retry.";
+});
+function manualOfflineChecks(){
+  return {
+    networkDisconnection:byId("network-offline-confirmed").checked?
+      "manually-confirmed":"not-confirmed",
+    serviceWorkerControl:serviceWorkerObservation,
+    offlineReload:byId("offline-reload-result").value,
+    coldRestart:byId("cold-restart-result").value
+  };
+}
+function validateManualOfflineChecks(checks){
+  const passing=step=>checks[step]==="observed-pass";
+  if((passing("offlineReload")||passing("coldRestart"))&&
+     checks.networkDisconnection!=="manually-confirmed")
+    throw Error("Confirm offline networking was manually disconnected before reporting an offline pass.");
+  if(passing("offlineReload")&&!passing("serviceWorkerControl"))
+    throw Error("Check Service Worker control before marking offline reload passed.");
+  if(passing("coldRestart")&&!passing("offlineReload"))
+    throw Error("A cold-restart pass requires a successful offline-reload observation first.");
+}
+
 byId("download").addEventListener("click",()=>{
+  if(byId("os").value==="unspecified"||byId("browser").value==="unspecified"||!isSecureContext){
+    display("Select OS/browser and use HTTPS or localhost before exporting evidence.");
+    return;
+  }
+  const offlineChecks=manualOfflineChecks();
+  try{validateManualOfflineChecks(offlineChecks);}catch(error){display(error.message);return;}
   const report={
-    format:"ryzova-device-acceptance-v1",
+    format:"ryzova-device-acceptance-v2",
     operatingSystem:byId("os").value,
     browser:byId("browser").value,
     browserVersion:byId("version").value.replace(/[^a-zA-Z0-9. -]/g,"").slice(0,24),
     secureContext:isSecureContext,
     measuredAtUtc:new Date().toISOString(),
     noRawDeviceMediaOrCoordinates:true,
-    results:outcomes
+    results:outcomes,
+    offlineChecks
   };
   const blob=new Blob([JSON.stringify(report,null,2)+"\n"],{type:"application/json"});
   const url=URL.createObjectURL(blob);
@@ -132,6 +169,11 @@ byId("download").addEventListener("click",()=>{
 });
 byId("clear").addEventListener("click",()=>{
   outcomes.length=0;
-  display("In-memory evidence cleared. No remote upload was used.");
+  serviceWorkerObservation="not-tested";
+  byId("sw-control-status").textContent="SW control not checked.";
+  byId("network-offline-confirmed").checked=false;
+  byId("offline-reload-result").value="not-tested";
+  byId("cold-restart-result").value="not-tested";
+  display("In-memory evidence and manual offline observations cleared. No remote upload was used.");
 });
 
