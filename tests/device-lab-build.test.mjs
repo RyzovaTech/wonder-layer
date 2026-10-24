@@ -21,7 +21,7 @@ test("static bundle exports only PWA and browser SDK assets",async()=>{
     }
     await writeFile(join(root,".env"),"DO_NOT_DEPLOY_SECRET=yes");
     const out=join(root,"public");
-    const report=await buildDeviceLab({sourceRoot:root,targetRoot:out});
+    const report=await buildDeviceLab({sourceRoot:root+"/",targetRoot:out+"/"});
     assert.equal(report.fileCount,files.length);
     assert.equal((await readFile(join(out,"src/compute.wasm"),"utf8")),"src/compute.wasm");
     assert.deepEqual((await readdir(out)).sort(),["examples","src"]);
