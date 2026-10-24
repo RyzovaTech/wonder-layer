@@ -19,6 +19,8 @@ This runbook applies to the dedicated authentication-protected Vercel Device Lab
 4. Run an **authenticated** browser session with consent to verify Service Worker installation, offline reload and IndexedDB recovery. HTTP probes alone are insufficient. Hosted CI or desktop browser checks must not be labeled physical Android/iOS.
 5. Use only the synthetic IndexedDB key/value provided by the Device Lab. Do not enter real user content or sync sensitive files to the demo.
 
+> **Phase 8D evidence update:** Exported Device Lab reports are now schema `ryzova-device-acceptance-v2` with optional *manual observations* required for offline reload/cold restart claims. `tools/verify-device-evidence.mjs` accepts legacy v1 and v2, including multiple-file aggregation, but remains `SELF_REPORTED_DEVICE_EVIDENCE` (or `SELF_REPORTED_AGGREGATE_REQUIRES_INDEPENDENT_ATTESTATION`). See [Phase 8D protocol](PHASE8D_PHYSICAL_VALIDATION.md). Do not treat a manually checked box as attested physical-device provenance.
+
 ## Physical-device evidence intake
 
 The authorized tester follows `docs/PHASE7_DEVICE_VALIDATION.md`: physical device, OS/browser versions, user-initiated permission tests, online save, offline reload and cold browser/PWA restart. Export local JSON only after consent; on a trusted workstation validate with:
