@@ -14,6 +14,16 @@ Ryzova Wonder Layer is a framework-independent experimental SDK for giving exist
 - [Machine-readable capability/claim matrix](docs/product/phase8a-capabilities.json) — checks guard advertised package entrypoints, declared SDK roots and release claims.
 - **No published commercial offer:** license, pricing, physical-device validation, independent security review and npm publication authorization remain open. No comparative performance or developer-time-savings figures have been established.
 
+## Phase 8B — SDK product quality
+
+The SDK now guards against concurrent PWA Service Worker registrations on one lifecycle instance, avoids orphan event listeners during teardown and provides idempotent SDK cleanup. The **host application still owns its service worker scope**; closing Wonder Layer never unregisters an installed worker.
+
+```sh
+npm run size:check  # rebuild + inspect actual uncompressed SDK dist assets
+```
+
+The size budget is an internal engineering guardrail, **not a minified/browser-delivered bundle size or speed claim**. See [Phase 8B SDK quality and experimental API policy](docs/PHASE8B_SDK_PRODUCT_QUALITY.md). All release restrictions and physical-device review gates remain in force.
+
 ## Private beta readiness (controlled preview only)
 
 Private beta **engineering preparations**, not a public package publication or production-security certification: [readiness plan](docs/PRIVATE_BETA_RC_PLAN.md), [independent reviewer/device sign-off template](docs/PRIVATE_BETA_REVIEW_TEMPLATE.md), and [the on-device test lab](examples/device-lab/).
