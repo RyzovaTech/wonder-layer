@@ -25,7 +25,9 @@ Never execute `npm publish` or remove `private:true` without a written authorize
 
 ## Authentication-protected HTTPS preview
 
-A dedicated Vercel project `wonder-layer-device-lab` is configured with **Vercel Authentication for all deployment targets**. It uses `npm run build:device-lab` to create a static `public/` tree limited to the Device Lab, sample icons and SDK browser JS/WASM modules. It is intentionally not a public npm release or an unauthenticated customer app.
+A dedicated Vercel project `wonder-layer-device-lab` is configured with **Vercel Authentication for all deployment targets**.
+
+Host response security policy is versioned in `vercel.json`: restrictive same-origin CSP (including permitted WebAssembly compilation), iframe denial, no-referrer/no-sniff and self-scoped camera/microphone/location permissions. Inspect these headers on the actual protected deployment during acceptance; passing repository tests does not prove deployment headers were delivered. It uses `npm run build:device-lab` to create a static `public/` tree limited to the Device Lab, sample icons and SDK browser JS/WASM modules. It is intentionally not a public npm release or an unauthenticated customer app.
 
 - Repository-linked staging branch: `engineering/private-beta-rc-readiness`.
 - Do not bypass authentication with publicly shared protection-bypass URLs.
