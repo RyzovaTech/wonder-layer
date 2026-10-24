@@ -27,6 +27,15 @@
       ]
     },
     {
+      "source": "/examples/developer-site/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
       "source": "/examples/device-lab/(.*)",
       "headers": [
         {
