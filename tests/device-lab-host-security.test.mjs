@@ -1,0 +1,31 @@
+import {test} from "node:test";
+import assert from "node:assert/strict";
+import {readFile} from "node:fs/promises";
+test("authenticated device-lab host policy has a restrictive CSP and no explicit bypass",async()=>{
+  const config=JSON.parse(await readFile(new URL("../vercel.json",import.meta.url),"utf8"));
+  const headers=config.headers.find(rule=>rule.source==="/(.*)")?.headers??[];
+  const get=key=>headers.find(entry=>entry.key===key)?.value;
+  const csp=get("Content-Security-Policy");
+  assert.match(csp,/default-src 'self'/);
+  assert.match(csp,/script-src 'self' 'wasm-unsafe-eval'/);
+  assert.match(csp,/frame-ancestors 'none'/);
+  assert.match(csp,/object-src 'none'/);
+  assert.match(csp,/connect-src 'self'/);
+  assert.equal(csp.includes("unsafe-inline"),false);
+  assert.equal(get("X-Content-Type-Options"),"nosniff");
+  assert.equal(get("Referrer-Policy"),"no-referrer");
+  assert.equal(get("X-Frame-Options"),"DENY");
+  assert.match(get("Permissions-Policy"),/camera=\(self\)/);
+  assert.equal(JSON.stringify(config).includes("protection-bypass"),false);
+});
+
+test("service-worker-specific caching wins over broad Device Lab rules",async()=>{
+  const config=JSON.parse(await readFile(new URL("../vercel.json",import.meta.url),"utf8"));
+  const broadIndex=config.headers.findIndex(rule=>rule.source==="/examples/device-lab/(.*)");
+  const swIndex=config.headers.findIndex(rule=>rule.source==="/examples/device-lab/sw.js");
+  assert.ok(broadIndex>=0,"Device Lab default asset rule must exist");
+  assert.ok(swIndex>broadIndex,"Vercel applies later matching headers last; SW rule must come after default");
+  const getCache=rule=>rule.headers.find(header=>header.key.toLowerCase()==="cache-control")?.value;
+  assert.equal(getCache(config.headers[broadIndex]),"no-cache");
+  assert.equal(getCache(config.headers[swIndex]),"no-store");
+});

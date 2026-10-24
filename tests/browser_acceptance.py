@@ -242,6 +242,27 @@ def run(browser_name="chromium", executable_path=None, profile="desktop", channe
                 finally:
                     lab.close()
             check("device_lab_loads_without_permission_prompts",device_lab_no_automatic_permissions)
+            def device_lab_synthetic_offline_recovery():
+                lab=ctx.new_page()
+                try:
+                    address=url.split("/examples/")[0]+"/examples/device-lab/"
+                    response=lab.goto(address,wait_until="load",timeout=25000)
+                    assert response and response.ok
+                    lab.wait_for_function("""() => !!navigator.serviceWorker?.controller""",timeout=20000)
+                    lab.locator("#save-synthetic").click()
+                    lab.get_by_text("Saved synthetic value locally.",exact=False).wait_for(timeout=20000)
+                    ctx.set_offline(True)
+                    try:
+                        lab.reload(wait_until="load",timeout=20000)
+                        lab.locator("#read-synthetic").click()
+                        lab.get_by_text("PASS: synthetic value recovered",exact=False).wait_for(timeout=20000)
+                    finally:
+                        ctx.set_offline(False)
+                    return {"offlinePwaShell":True,"syntheticIndexedDBRetained":True,
+                            "noRealUserData":True}
+                finally:
+                    lab.close()
+            check("device_lab_synthetic_offline_recovery",device_lab_synthetic_offline_recovery)
             def pwa_manifest_assets():
                 return page.evaluate("""async () => {
                   const link=document.querySelector('link[rel="manifest"]');

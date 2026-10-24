@@ -14,6 +14,19 @@ node tools/verify-device-evidence.mjs ./wonder-device-acceptance.json
 
 The checker permits only coarse outcome values and known metadata keys. It intentionally reports `SELF_REPORTED_DEVICE_EVIDENCE` and `attestedPhysicalDevice:false`: a JSON file by itself **cannot prove that real hardware was used** or that the tester was independent. A named, authorized device tester must separately verify provenance and give private sign-off. Keep these JSON files local or in a restricted evidence store, not in public GitHub issues.
 
+### Physical offline-PWA synthetic acceptance
+
+The Device Lab now registers a dedicated scoped Service Worker and caches its own static shell and SDK modules. It stores only the literal `wonder-synthetic-only` in a dedicated IndexedDB, with **no server synchronization**.
+
+1. Visit the Device Lab on a real phone/laptop over trusted HTTPS and confirm the service worker has installed.
+2. Click **Save synthetic value** while online.
+3. Enable airplane mode or block all networking; reload the same page and click **Read synthetic value**. The result should show `PASS`.
+4. Close and reopen the physical browser/PWA **still offline**; repeat Read. A page reload alone does not establish cold OS/browser recovery.
+5. Record the outcome privately with device/browser version and whether the device was genuinely offline. A lab `PASS` read alone does **not** cryptographically prove the network was disconnected or the device was physical.
+6. Reconnect. Use Export evidence for permission outcomes separately; record synthetic offline/cold-restart outcome in the private reviewer report, not by inventing new JSON fields.
+
+The existing `tests/browser_acceptance.py` additionally executes the synthetic save/offline reload test automatically in desktop/headless CI. Its evidence is **simulated network disconnection** on a hosted runner, not physical Android/iOS evidence.
+
 The lab uses **real user click events** to initiate camera, microphone, geolocation, Bluetooth, USB, HID, serial and WebGPU shader tests. Browser permissions and hardware support may vary. A denied prompt is **not** a passing capability test. Results are exported only when a user clicks Download and contain coarse statuses. The lab never transmits or retains raw coordinates, image frames, recorded audio, device IDs, or file contents.
 
 ### Matrix — record exact devices and evidence before changing status

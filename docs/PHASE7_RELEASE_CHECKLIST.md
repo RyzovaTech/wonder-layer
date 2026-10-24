@@ -1,5 +1,16 @@
 # Phase 7 — Security & Release Preparation (pre-release gate)
 
+## Controlled beta preparation
+
+- [x] Device Lab offline Service Worker shell and synthetic IndexedDB persistence test added
+- [x] Build-file SHA-256 manifest generation; CI uploads integrity metadata only, not public tarballs
+- [x] Review and device attestation template drafted
+- [x] Restricted-device-lab operational, reviewer handoff and rollback runbook drafted (not exercised)
+- [ ] Authenticated Device Lab browser E2E, actual rollback rehearsal and private reviewer/tester intake evidence
+- [ ] Physical tester reports, independent reviewer acceptance, license/publication policy and Linux CI restoration remain open
+
+See [Private Beta RC plan](PRIVATE_BETA_RC_PLAN.md) and [operations/rollback runbook](PRIVATE_BETA_OPERATIONS_RUNBOOK.md). No private beta distribution or public release is approved merely by automated builds.
+
 ## Engineering progress
 
 - [x] Restore Phase 6 consumer CI after browser dependency download timeout, PR #15

@@ -6,6 +6,14 @@ Ryzova Wonder Layer is a framework-independent experimental SDK for giving exist
 
 > **Engineering beta, not a production release.** Automated desktop/browser acceptance has been verified on Chromium, Firefox, WebKit, Windows Edge and macOS WebKit. Real physical Android/iOS devices and WebGPU hardware execution are not yet verified. A browser SDK cannot bypass device permissions, guarantee indefinite background execution, or silently install applications.
 
+## Private beta readiness (controlled preview only)
+
+Private beta **engineering preparations**, not a public package publication or production-security certification: [readiness plan](docs/PRIVATE_BETA_RC_PLAN.md), [independent reviewer/device sign-off template](docs/PRIVATE_BETA_REVIEW_TEMPLATE.md), and [the on-device test lab](examples/device-lab/).
+
+The Device Lab now has its own offline-cached PWA scope. Testers can save a literal **synthetic** local record, turn on airplane mode, reload the page and verify IndexedDB recovery without uploading anything or recording personal data. A device JSON export does **not** attest that a real device was used; an authorized tester must verify provenance.
+
+`npm run beta:manifest` generates SHA-256 file inventory metadata for the local `dist` build. It does not publish the SDK or confer license, security-review, or device approval. Post-merge CI and real-device evidence remain explicit gates.
+
 ## Phase 7 — Security and physical-device release gates
 
 A same-origin-only sync transport, untrusted server-response validation, privacy-minimized click-to-test [physical device lab](examples/device-lab/) and [release readiness gates](docs/PHASE7_RELEASE_CHECKLIST.md) are under active engineering validation.

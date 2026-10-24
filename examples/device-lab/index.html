@@ -4,19 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="referrer" content="no-referrer">
+  <link rel="manifest" href="./manifest.webmanifest">
   <title>Wonder Layer — Physical Device Acceptance Lab</title>
-  <style>
-    :root{font:16px/1.5 system-ui,sans-serif;color-scheme:light dark}
-    body{max-width:850px;margin:0 auto;padding:1.4rem}
-    h1{line-height:1.1}label{display:block;margin:.75rem 0}
-    input,select,button{font:inherit;padding:.6rem;border-radius:.45rem}
-    input,select{max-width:100%}
-    button{margin:.25rem;cursor:pointer}
-    button:focus-visible{outline:3px solid dodgerblue}
-    section{border:1px solid #8887;padding:1rem;border-radius:.75rem;margin:1rem 0}
-    pre{white-space:pre-wrap;word-wrap:break-word;max-height:20rem;overflow:auto}
-    .note{padding:.7rem;border-inline-start:4px solid #cc8a11;background:#8881}
-  </style>
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <main>
@@ -57,6 +47,13 @@
         <button type="button" data-test="gpu">Execute real WebGPU shader</button>
       </div>
       <pre id="status" role="status" aria-live="polite">Ready. Nothing requested.</pre>
+    </section>
+    <section>
+      <h2>Offline persistence — synthetic test only</h2>
+      <p>This stores the literal test value <code>wonder-synthetic-only</code> in your browser's IndexedDB, without syncing it to any server. Save it, disconnect your device from the internet, reload the page, and then read it back.</p>
+      <button id="save-synthetic" type="button">Save synthetic value</button>
+      <button id="read-synthetic" type="button">Read synthetic value</button>
+      <p id="offline-status" role="status" aria-live="polite">No synthetic data test performed.</p>
     </section>
     <section>
       <h2>Export privacy-minimized evidence</h2>

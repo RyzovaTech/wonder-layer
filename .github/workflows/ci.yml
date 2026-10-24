@@ -39,3 +39,11 @@ jobs:
         run: npm pack --dry-run --ignore-scripts
       - name: Assert public release remains blocked
         run: node tools/release-gate.mjs
+      - name: Generate private beta integrity metadata only
+        run: node tools/beta-candidate.mjs
+      - name: Upload integrity metadata (never publish npm archive)
+        uses: actions/upload-artifact@v4
+        with:
+          name: wonder-beta-manifest-node-${{ matrix.node }}
+          path: results/private-beta-build-manifest.json
+          if-no-files-found: error
