@@ -49,6 +49,7 @@
     "check:release": "node tools/release-gate.mjs",
     "beta:manifest": "npm run build && node tools/beta-candidate.mjs",
     "build:device-lab": "node tools/build-device-lab.mjs",
-    "size:check": "npm run build && node tools/sdk-size-report.mjs"
+    "size:check": "npm run build && node tools/sdk-size-report.mjs",
+    "evidence:matrix": "node tools/physical-review-intake.mjs"
   }
 }

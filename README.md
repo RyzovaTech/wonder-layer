@@ -43,6 +43,17 @@ The protected Device Lab now supports a **v2 self-reported offline evidence prot
 
 See [Phase 8D physical-device execution and reviewer checklist](docs/PHASE8D_PHYSICAL_VALIDATION.md). Real Android/iPhone test execution and independent human sign-off are **not yet completed**; all release gates remain blocked.
 
+## Phase 8D — Authorized physical validation intake
+
+**Still NOT TESTED on real Android/iPhone hardware.** The evidence-intake script provides a local, privacy-minimized compatibility review report that can never confer physical certification.
+
+```sh
+npm run evidence:matrix  # blank NOT TESTED matrix
+npm run evidence:matrix -- ./android.json ./iphone.json  # restricted local files only
+```
+
+See [Physical tester execution steps](docs/PHASE8D_EXECUTION_INTAKE.md), [blank private attestation form](docs/PHASE8D_ATTESTATION_TEMPLATE.md) and [Device Lab protocol](docs/PHASE8D_PHYSICAL_VALIDATION.md). Do not commit raw reports or tester identity into public GitHub.
+
 ## Private beta readiness (controlled preview only)
 
 Private beta **engineering preparations**, not a public package publication or production-security certification: [readiness plan](docs/PRIVATE_BETA_RC_PLAN.md), [independent reviewer/device sign-off template](docs/PRIVATE_BETA_REVIEW_TEMPLATE.md), and [the on-device test lab](examples/device-lab/).
